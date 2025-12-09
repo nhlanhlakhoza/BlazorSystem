@@ -1,0 +1,204 @@
+.page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+.sidebar {
+    background-color: #f7f7f7 !important;
+}
+
+.top-row {
+    background-color: #f7f7f7;
+    /*border-bottom: 1px solid #d6d5d5;*/
+    justify-content: flex-end;
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+}
+
+    .top-row ::deep a, .top-row ::deep .btn-link {
+        white-space: nowrap;
+        margin-left: 1.5rem;
+        text-decoration: none;
+    }
+
+        .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
+            text-decoration: underline;
+        }
+
+        .top-row ::deep a:first-child {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+@media (max-width: 640.98px) {
+    .top-row {
+        justify-content: space-between;
+    }
+
+        .top-row ::deep a, .top-row ::deep .btn-link {
+            margin-left: 0;
+        }
+}
+
+@media (min-width: 641px) {
+    .page {
+        flex-direction: row;
+    }
+
+    .sidebar {
+        width: 250px;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+    }
+
+    .top-row {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+        .top-row.auth ::deep a:first-child {
+            flex: 1;
+            text-align: right;
+            width: 0;
+        }
+
+    .top-row, article {
+        padding-left: 2rem !important;
+        padding-right: 1.5rem !important;
+    }
+}
+
+#blazor-error-ui {
+    color-scheme: light only;
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }
+
+.profile-trigger {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 8px 15px;
+    border-radius: 30px;
+    transition: background-color 0.3s;
+}
+
+
+    .profile-trigger:hover {
+        background: #f0f0f0;
+    }
+
+
+.profile-icon {
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    background: #a9ca4c;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.profile-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+    line-height: 1.1;
+}
+
+
+.custom-dropdown {
+    padding: 5px 0;
+    border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+}
+
+
+.dropdown-link {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 10px 18px !important;
+    font-size: 14px !important;
+    color: #34495e !important;
+    transition: background 0.2s, color 0.2s;
+}
+
+    .dropdown-link i {
+        width: 10px;
+        text-align: center;
+        font-size: 15px;
+        color: #7f8c8d;
+    }
+
+    
+    .dropdown-link:hover {
+        background: #f5f7f8 !important;
+        color: !important;
+    }
+
+        .dropdown-link:hover i {
+            color: #34495e !important;
+        }
+/* Make the RadzenProfileMenu trigger button fully transparent */
+.rz-profilemenu .rz-profilemenu-button {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: inherit !important;
+}
+
+    /* Remove hover background */
+    .rz-profilemenu .rz-profilemenu-button:hover {
+        background-color: rgba(0,0,0,0.05) !important; /* optional light hover */
+    }
+
+    /* Optional: remove focus outline */
+    .rz-profilemenu .rz-profilemenu-button:focus {
+        box-shadow: none !important;
+        outline: none !important;
+    }
+/* Remove RadzenProfileMenu default background */
+.rz-profilemenu .rz-profilemenu-button {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: inherit !important;
+}
+
+    /* Optional: remove focus outline */
+    .rz-profilemenu .rz-profilemenu-button:focus {
+        box-shadow: none !important;
+        outline: none !important;
+    }
+
+/* Menu item hover color to yellow */
+.rz-profilemenu .rz-menu-item:hover {
+    background-color: yellow !important;
+}

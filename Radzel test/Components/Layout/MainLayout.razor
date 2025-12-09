@@ -1,0 +1,20 @@
+@inherits LayoutComponentBase
+@using Radzen.Blazor
+
+
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 d-flex justify-content-end align-items-center">
+            <Radzel_test.Components.Pages.UserProfile/>
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>

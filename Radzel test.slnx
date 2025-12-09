@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="backendMpact/backendMpact.csproj" />
+  <Project Path="Radzel test/Radzel test.csproj" />
+</Solution>

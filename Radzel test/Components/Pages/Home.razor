@@ -1,0 +1,272 @@
+﻿@page "/login"
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Dashboard - Inspection Pro</PageTitle>
+
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1><i class="fas fa-tasks"></i> Dashboard</h1>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card missing">
+            <div class="card-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="card-content">
+                <h3>12</h3>
+                <p>OverDue</p>
+            </div>
+        </div>
+
+        <div class="summary-card pending">
+            <div class="card-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="card-content">
+                <h3>24</h3>
+                <p>Pending</p>
+            </div>
+        </div>
+
+        <div class="summary-card completed">
+            <div class="card-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="card-content">
+                <h3>43</h3>
+                <p>Completed</p>
+            </div>
+        </div>
+
+        <div class="summary-card in-progress">
+            <div class="card-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="card-content">
+                <h3>18</h3>
+                <p>Total Task</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <!-- Tasks Section -->
+        <div class="tasks-section">
+            <div class="section-header">
+                <h2><i class="fas fa-list-ul"></i> Recent Tickets</h2>
+                <div class="filters">
+                    <button class="filter-btn @(ActiveFilter == "all" ? "active" : "")" @onclick='() => SetFilter("all")'>All</button>
+                    <button class="filter-btn @(ActiveFilter == "missing" ? "active" : "")" @onclick='() => SetFilter("missing")'>Missing</button>
+                    <button class="filter-btn @(ActiveFilter == "pending" ? "active" : "")" @onclick='() => SetFilter("pending")'>Pending</button>
+                    <button class="filter-btn @(ActiveFilter == "in-progress" ? "active" : "")" @onclick='() => SetFilter("in-progress")'>In Progress</button>
+                </div>
+            </div>
+            <div class="tasks-container">
+                @foreach (var task in FilteredTasks)
+                {
+                    <div class="task-item">
+                        <div class="task-info">
+                            <div class="task-title">
+                                <span>@task.Title</span>
+                                <span class="priority @task.Priority.ToLower()">@task.Priority.ToUpper()</span>
+                            </div>
+                            <div class="task-meta">
+                                <span><i class="far fa-calendar"></i> Due: @task.DueDate.ToString("dd MMM yyyy")</span>
+                                <span class="inspector"><i class="fas fa-user"></i> Assigned to: @task.AssignedTo</span>
+                            </div>
+                        </div>
+                        <div class="status @task.Status.Replace(" ", "-")">@task.Status</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Inspectors Section -->
+        <div class="inspectors-section">
+            <div class="section-header">
+                <h2><i class="fas fa-users"></i> Inspector Team</h2>
+            </div>
+            <div class="inspectors-container">
+                @foreach (var inspector in Inspectors)
+                {
+                    <div class="inspector-card">
+                        <div class="inspector-avatar">@inspector.Avatar</div>
+                        <div class="inspector-details">
+                            <div class="inspector-name">@inspector.Name</div>
+                            <div class="inspector-stats">
+                                <div class="stat"><i class="fas fa-tasks"></i> @inspector.AssignedCount Assigned</div>
+                                <div class="stat">
+                                    <i class="@GetStatIcon(inspector.StatType)"></i> @inspector.StatCount @inspector.StatType
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string ActiveFilter = "all";
+    private List<TaskItem> Tasks = new();
+    private List<TaskItem> FilteredTasks = new();
+    private List<Inspector> Inspectors = new();
+
+    protected override void OnInitialized()
+    {
+        LoadSampleData();
+        FilterTasks();
+    }
+
+    private void LoadSampleData()
+    {
+        // Sample tasks
+        Tasks = new List<TaskItem>
+        {
+            new TaskItem
+            {
+                Title = "Safety Inspection - Building A",
+                Priority = "HIGH",
+                DueDate = new DateTime(2024, 2, 15),
+                AssignedTo = "John Davis",
+                Status = "missing"
+            },
+            new TaskItem
+            {
+                Title = "Electrical System Check",
+                Priority = "HIGH",
+                DueDate = new DateTime(2024, 2, 18),
+                AssignedTo = "Sarah Johnson",
+                Status = "in-progress"
+            },
+            new TaskItem
+            {
+                Title = "Fire Safety Audit",
+                Priority = "MEDIUM",
+                DueDate = new DateTime(2024, 2, 20),
+                AssignedTo = "Michael Chen",
+                Status = "pending"
+            },
+            new TaskItem
+            {
+                Title = "Structural Integrity Report",
+                Priority = "HIGH",
+                DueDate = new DateTime(2024, 2, 22),
+                AssignedTo = "Robert Wilson",
+                Status = "missing"
+            },
+            new TaskItem
+            {
+                Title = "Plumbing System Inspection",
+                Priority = "LOW",
+                DueDate = new DateTime(2024, 2, 25),
+                AssignedTo = "Lisa Martinez",
+                Status = "completed"
+            }
+        };
+
+        // Sample inspectors
+        Inspectors = new List<Inspector>
+        {
+            new Inspector
+            {
+                Avatar = "JD",
+                Name = "John Davis",
+                AssignedCount = 8,
+                StatType = "Missing",
+                StatCount = 2
+            },
+            new Inspector
+            {
+                Avatar = "SJ",
+                Name = "Sarah Johnson",
+                AssignedCount = 6,
+                StatType = "In Progress",
+                StatCount = 4
+            },
+            new Inspector
+            {
+                Avatar = "MC",
+                Name = "Michael Chen",
+                AssignedCount = 7,
+                StatType = "Pending",
+                StatCount = 3
+            },
+            new Inspector
+            {
+                Avatar = "RW",
+                Name = "Robert Wilson",
+                AssignedCount = 5,
+                StatType = "Missing",
+                StatCount = 1
+            },
+            new Inspector
+            {
+                Avatar = "LM",
+                Name = "Lisa Martinez",
+                AssignedCount = 4,
+                StatType = "Completed",
+                StatCount = 4
+            }
+        };
+    }
+
+    private void SetFilter(string filter)
+    {
+        ActiveFilter = filter;
+        FilterTasks();
+
+        if (filter != "all")
+        {
+            JSRuntime.InvokeVoidAsync("alert", $"Filtering by: {filter.Replace("-", " ")}");
+        }
+    }
+
+    private void FilterTasks()
+    {
+        if (ActiveFilter == "all")
+        {
+            FilteredTasks = Tasks;
+        }
+        else
+        {
+            FilteredTasks = Tasks.Where(t => t.Status == ActiveFilter).ToList();
+        }
+        StateHasChanged();
+    }
+
+    private string GetStatIcon(string statType)
+    {
+        return statType.ToLower() switch
+        {
+            "missing" => "fas fa-exclamation-circle",
+            "in progress" => "fas fa-sync-alt",
+            "pending" => "fas fa-clock",
+            "completed" => "fas fa-check-circle",
+            _ => "fas fa-tasks"
+        };
+    }
+
+    // Model Classes
+    public class TaskItem
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Priority { get; set; } = string.Empty;
+        public DateTime DueDate { get; set; }
+        public string AssignedTo { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+    }
+
+    public class Inspector
+    {
+        public string Avatar { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public int AssignedCount { get; set; }
+        public string StatType { get; set; } = string.Empty;
+        public int StatCount { get; set; }
+    }
+}
