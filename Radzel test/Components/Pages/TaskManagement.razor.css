@@ -1,13 +1,18 @@
+html, body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+}
 
-/* Main Container */
-.users-container {
-    max-width: 100% !important;
-    width: 100% !important;
+
+.tasks-container {
+    max-width: none !important;
+    width: 100% !important; 
     margin: 0 !important;
     padding: 20px;
 }
 
-/* Page Header */
 .page-header {
     background: #a9ca4c;
     color: white;
@@ -15,7 +20,7 @@
     border-radius: 10px;
     margin-bottom: 25px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    height: 24px;
+    height:24px;
 }
 
     .page-header h1 {
@@ -45,7 +50,7 @@
 }
 
 .action-btn {
-    background: #a9ca4c;
+    background: #3498db;
     color: white;
     border: none;
     padding: 12px 20px;
@@ -59,10 +64,34 @@
 }
 
     .action-btn:hover {
-        background: #95b53d;
+        background: #a9ca4c;
     }
 
-/* Search Section */
+    .action-btn.add {
+        background: #a9ca4c;
+    }
+
+        .action-btn.add:hover {
+            background: #95b53d;
+        }
+
+    .action-btn.refresh {
+        background: #a9ca4c;
+    }
+
+        .action-btn.refresh:hover {
+            background: #95b53d;
+        }
+
+    .action-btn.export {
+        background: #a9ca4c;
+    }
+
+        .action-btn.export:hover {
+            background: #95b53d;
+        }
+
+/* Search and Filters */
 .search-section {
     background: white;
     padding: 20px;
@@ -98,6 +127,7 @@
     display: flex;
     gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .filter-select {
@@ -108,8 +138,8 @@
     cursor: pointer;
 }
 
-/* Table */
-.users-table-container {
+/* Tasks Table */
+.tasks-table-container {
     background: white;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
@@ -178,16 +208,31 @@ tr:hover {
     background: #f8f9fa;
 }
 
-/* User Info */
-.user-info {
+.task-info {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    gap: 5px;
 }
 
-.user-avatar {
-    width: 40px;
-    height: 40px;
+.task-title {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.task-description {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+}
+
+.agent-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.agent-avatar {
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: #a9ca4c;
     display: flex;
@@ -195,48 +240,64 @@ tr:hover {
     justify-content: center;
     color: white;
     font-weight: bold;
+    font-size: 0.8rem;
 }
 
-.user-email {
-    font-size: 0.85rem;
-    color: #7f8c8d;
+.agent-name {
+    font-size: 0.9rem;
 }
 
-/* Badges */
-.role-badge,
 .status-badge {
-    padding: 5px 10px;
+    padding: 6px 12px;
     border-radius: 15px;
     font-size: 0.8rem;
     font-weight: bold;
+    text-align: center;
+    display: inline-block;
 }
 
-.role-admin {
-    background: #e3f2fd;
-    color: #1976d2;
-}
-
-.role-inspector {
-    background: #e8f5e9;
-    color: #388e3c;
-}
-
-.role-manager {
+.status-pending {
     background: #fff8e1;
-    color: #f57f17;
+    color: #f39c12;
 }
 
-.status-active {
+.status-in-progress {
+    background: #e3f2fd;
+    color: #3498db;
+}
+
+.status-completed {
     background: #e8f5e9;
     color: #27ae60;
 }
 
-.status-inactive {
+.status-overdue {
     background: #ffebee;
     color: #e74c3c;
 }
 
-/* Action Buttons */
+.priority-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.priority-high {
+    background: #ffcdd2;
+    color: #c62828;
+}
+
+.priority-medium {
+    background: #fff9c4;
+    color: #f57f17;
+}
+
+.priority-low {
+    background: #c8e6c9;
+    color: #2e7d32;
+}
+
 .action-cell {
     display: flex;
     gap: 8px;
@@ -263,53 +324,27 @@ tr:hover {
     color: #e74c3c;
 }
 
-/* Toggle Switch */
-.toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 24px;
-}
-
-    .toggle-switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-
-.slider {
-    position: absolute;
+.status-select {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: white;
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-    border-radius: 24px;
+    font-size: 0.8rem;
+    width: 120px;
 }
 
-    .slider:before {
-        position: absolute;
-        content: "";
-        height: 16px;
-        width: 16px;
-        left: 4px;
-        bottom: 4px;
-        background-color: white;
-        transition: .4s;
-        border-radius: 50%;
-    }
-
-input:checked + .slider {
-    background-color: #27ae60;
+.agent-select {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.8rem;
+    width: 150px;
 }
 
-    input:checked + .slider:before {
-        transform: translateX(26px);
-    }
-
-/* Modal */
+/* Modal Styles */
 .modal {
     display: none;
     position: fixed;
@@ -332,8 +367,10 @@ input:checked + .slider {
     padding: 30px;
     border-radius: 10px;
     width: 90%;
-    max-width: 500px;
+    max-width: 600px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-header {
@@ -356,7 +393,6 @@ input:checked + .slider {
     color: #7f8c8d;
 }
 
-/* Form */
 .form-group {
     margin-bottom: 20px;
 }
@@ -374,6 +410,17 @@ input:checked + .slider {
     border: 1px solid #ddd;
     border-radius: 5px;
     font-size: 1rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
 }
 
 .form-actions {
@@ -438,11 +485,15 @@ input:checked + .slider {
         margin-bottom: 10px;
     }
 
-/* Responsive */
+/* Responsive Design */
 @media (max-width: 768px) {
     .search-section {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .search-bar {
+        min-width: auto;
     }
 
     .quick-actions {
@@ -458,5 +509,9 @@ input:checked + .slider {
     table {
         display: block;
         overflow-x: auto;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
     }
 }

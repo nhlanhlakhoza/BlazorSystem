@@ -1,4 +1,4 @@
-﻿using backendMpact.DTO;
+using backendMpact.DTO;
 using backendMpact.Models;
 using backendMpact.Repositories;
 using Microsoft.AspNetCore.Identity;
@@ -13,7 +13,7 @@ namespace backendMpact.Services
     public class UserService : IUserService
     {
         // Hardcoded JWT values
-        private const string JwtKey = "4bb6d1dfbafb64a681139d1586b6f1160d18159afd57c8c79136d7490630407c"; // must be 32+ chars
+        private const string JwtKey = "4bb6d1dfbafb64a681139d1586b6f1160d18159afd57c8c79136d7490630407c"; 
         private const string JwtIssuer = "MyBackendApp";
         private const string JwtAudience = "BlazorClient";
 
@@ -42,7 +42,8 @@ namespace backendMpact.Services
                 FullName=request.FullName,
                 LastName=request.LastName,
                 Password = hashedPassword,
-                Role = "Admin"
+                Role = request.Role,
+                Status="Active"
             };
 
             //  Save to database

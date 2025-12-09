@@ -8,7 +8,8 @@ using Radzen;
 using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
-// Add services to the container.
+// Add services to the container
+ builder.Services.AddBlazorBootstrap();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddBlazoredSessionStorage();

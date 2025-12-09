@@ -1,0 +1,557 @@
+@page "/tasks"
+@using Microsoft.AspNetCore.Components.Forms
+@inject IJSRuntime JSRuntime
+@using BlazorBootstrap
+
+@rendermode InteractiveServer
+
+<PageTitle>Task Management - Inspection Pro</PageTitle>
+
+<div class="tasks-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1><i class="fas fa-tasks"></i> Task Management</h1>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+        <button class="action-btn add" @onclick="ShowAddTaskModal">
+            <i class="fas fa-plus-circle"></i>
+            Add New Task
+        </button>
+        <button class="action-btn refresh" id="refreshBtn" @onclick="RefreshData">
+            <i class="fas fa-sync-alt"></i>
+            Refresh Data
+        </button>
+        <button class="action-btn export" @onclick="ExportTasks">
+            <i class="fas fa-file-export"></i>
+            Export Tasks
+        </button>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="search-section">
+        <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" @bind="SearchTerm" @bind:event="oninput" placeholder="Search tasks by title, description, or agent..." />
+        </div>
+        <div class="filter-group">
+            <select class="filter-select" @bind="StatusFilter">
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="overdue">Overdue</option>
+            </select>
+            <select class="filter-select" @bind="PriorityFilter">
+                <option value="">All Priorities</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+            <select class="filter-select" @bind="AgentFilter">
+                <option value="">All Agents</option>
+                @foreach (var agent in Agents)
+                {
+                    <option value="@agent.Id">@agent.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <!-- Tasks Table -->
+    <div class="tasks-table-container">
+        <div class="table-header">
+            <h2><i class="fas fa-list-check"></i> All Tasks</h2>
+            <div class="table-actions">
+                <span>@FilteredTasks.Count tasks</span>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Assigned Agent</th>
+                    <th>Due Date</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var task in FilteredTasks)
+                {
+                    var agent = Agents.FirstOrDefault(a => a.Id == task.AgentId);
+                    <tr>
+                        <td>
+                            <div class="task-info">
+                                <div class="task-title">@task.Title</div>
+                                <div class="task-description">@task.Description</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="agent-info">
+                                <div class="agent-avatar">@agent?.Avatar</div>
+                                <div class="agent-name">@agent?.Name</div>
+                            </div>
+                        </td>
+                        <td>@FormatDate(task.DueDate)</td>
+                        <td>
+                            <span class="priority-badge priority-@task.Priority.ToLower()">
+                                @task.Priority.ToUpper()
+                            </span>
+                        </td>
+                        <td>
+                            <select class="status-select" @onchange='@(e => UpdateTaskStatus(task.Id, e.Value?.ToString() ?? "pending"))'>
+                                <option value="pending" selected=@(task.Status == "pending")>Pending</option>
+                                <option value="in-progress" selected=@(task.Status == "in-progress")>In Progress</option>
+                                <option value="completed" selected=@(task.Status == "completed")>Completed</option>
+                                <option value="overdue" selected=@(task.Status == "overdue")>Overdue</option>
+                            </select>
+                        </td>
+                        <td>
+                            <div class="action-cell">
+                                <button class="icon-btn edit-btn" @onclick="() => EditTask(task.Id)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="icon-btn delete-btn" @onclick="() => DeleteTask(task.Id)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add/Edit Task Modal -->
+@if (ShowModal)
+{
+    <div class="modal show">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>@(EditingTask ? "Edit Task" : "Add New Task")</h3>
+                <button class="close-btn" @onclick="CloseModal">&times;</button>
+            </div>
+            <EditForm Model="@CurrentTask" OnValidSubmit="SaveTask">
+                <DataAnnotationsValidator />
+                <div class="form-group">
+                    <label for="taskTitle">Task Title *</label>
+                    <InputText id="taskTitle" @bind-Value="@CurrentTask.Title" class="form-control" />
+                    <ValidationMessage For="@(() => CurrentTask.Title)" />
+                </div>
+                <div class="form-group">
+                    <label for="taskDescription">Description</label>
+                    <InputTextArea id="taskDescription" @bind-Value="@CurrentTask.Description" class="form-control" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="taskAgent">Assign to Agent *</label>
+                        <InputSelect id="taskAgent" @bind-Value="@CurrentTask.AgentId" class="form-control">
+                            <option value="">Select Agent</option>
+                            @foreach (var agent in Agents)
+                            {
+                                <option value="@agent.Id">@agent.Name</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => CurrentTask.AgentId)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDueDate">Due Date *</label>
+                        <InputDate id="taskDueDate" @bind-Value="@CurrentTask.DueDate" class="form-control" />
+                        <ValidationMessage For="@(() => CurrentTask.DueDate)" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="taskPriority">Priority *</label>
+                        <InputSelect id="taskPriority" @bind-Value="@CurrentTask.Priority" class="form-control">
+                            <option value="">Select Priority</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => CurrentTask.Priority)" />
+                    </div>
+                    <div class="form-group">
+                        <label for="taskStatus">Status *</label>
+                        <InputSelect id="taskStatus" @bind-Value="@CurrentTask.Status" class="form-control">
+                            <option value="pending">Pending</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => CurrentTask.Status)" />
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Task</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<!-- Loading Indicator -->
+@if (IsLoading)
+{
+    <div class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>@LoadingMessage</p>
+        </div>
+    </div>
+}
+
+@code {
+    private List<TaskItem> Tasks = new();
+    private List<TaskItem> FilteredTasks = new();
+    private List<Agent> Agents = new();
+    private TaskItem CurrentTask = new();
+    private bool ShowModal = false;
+    private bool EditingTask = false;
+    private bool IsLoading = false;
+    private string LoadingMessage = "";
+    private string searchTerm = "";
+    private string statusFilter = "";
+    private string priorityFilter = "";
+    private string agentFilter = "";
+    private IJSObjectReference? taskModule;
+
+    // Properties with getters/setters to trigger filtering
+    private string SearchTerm
+    {
+        get => searchTerm;
+        set
+        {
+            searchTerm = value;
+            FilterTasks();
+        }
+    }
+
+    private string StatusFilter
+    {
+        get => statusFilter;
+        set
+        {
+            statusFilter = value;
+            FilterTasks();
+        }
+    }
+
+    private string PriorityFilter
+    {
+        get => priorityFilter;
+        set
+        {
+            priorityFilter = value;
+            FilterTasks();
+        }
+    }
+
+    private string AgentFilter
+    {
+        get => agentFilter;
+        set
+        {
+            agentFilter = value;
+            FilterTasks();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoadSampleData();
+        FilterTasks();
+
+        // Load the JavaScript module
+        try
+        {
+            taskModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Pages/TaskManagement.razor.js");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to load JS module: {ex.Message}");
+        }
+    }
+
+    private void LoadSampleData()
+    {
+        // Sample agents
+        Agents = new List<Agent>
+        {
+            new Agent { Id = 1, Name = "John Davis", Avatar = "JD" },
+            new Agent { Id = 2, Name = "Sarah Johnson", Avatar = "SJ" },
+            new Agent { Id = 3, Name = "Michael Chen", Avatar = "MC" },
+            new Agent { Id = 4, Name = "Robert Wilson", Avatar = "RW" },
+            new Agent { Id = 5, Name = "Lisa Martinez", Avatar = "LM" }
+        };
+
+        // Sample tasks
+        Tasks = new List<TaskItem>
+        {
+            new TaskItem
+            {
+                Id = 1,
+                Title = "Safety Inspection - Building A",
+                Description = "Complete safety inspection for Building A including fire exits and equipment",
+                AgentId = 1,
+                DueDate = new DateTime(2024, 2, 20),
+                Priority = "high",
+                Status = "pending",
+                CreatedAt = new DateTime(2024, 2, 10)
+            },
+            new TaskItem
+            {
+                Id = 2,
+                Title = "Electrical System Check",
+                Description = "Inspect electrical panels and wiring in the main facility",
+                AgentId = 2,
+                DueDate = new DateTime(2024, 2, 18),
+                Priority = "high",
+                Status = "in-progress",
+                CreatedAt = new DateTime(2024, 2, 8)
+            },
+            new TaskItem
+            {
+                Id = 3,
+                Title = "Fire Safety Audit",
+                Description = "Quarterly fire safety audit for all buildings",
+                AgentId = 3,
+                DueDate = new DateTime(2024, 2, 25),
+                Priority = "medium",
+                Status = "pending",
+                CreatedAt = new DateTime(2024, 2, 5)
+            },
+            new TaskItem
+            {
+                Id = 4,
+                Title = "Structural Integrity Report",
+                Description = "Assess structural integrity of older buildings",
+                AgentId = 4,
+                DueDate = new DateTime(2024, 2, 15),
+                Priority = "high",
+                Status = "overdue",
+                CreatedAt = new DateTime(2024, 1, 28)
+            },
+            new TaskItem
+            {
+                Id = 5,
+                Title = "Plumbing System Inspection",
+                Description = "Routine inspection of plumbing systems in residential units",
+                AgentId = 5,
+                DueDate = new DateTime(2024, 3, 1),
+                Priority = "low",
+                Status = "completed",
+                CreatedAt = new DateTime(2024, 2, 1)
+            }
+        };
+    }
+
+    private void FilterTasks()
+    {
+        var filtered = Tasks.AsEnumerable();
+
+        if (!string.IsNullOrEmpty(SearchTerm))
+        {
+            filtered = filtered.Where(t =>
+                t.Title.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                t.Description.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                Agents.Any(a => a.Id == t.AgentId && a.Name.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase))
+            );
+        }
+
+        if (!string.IsNullOrEmpty(StatusFilter))
+        {
+            filtered = filtered.Where(t => t.Status == StatusFilter);
+        }
+
+        if (!string.IsNullOrEmpty(PriorityFilter))
+        {
+            filtered = filtered.Where(t => t.Priority == PriorityFilter);
+        }
+
+        if (!string.IsNullOrEmpty(AgentFilter) && int.TryParse(AgentFilter, out int agentId))
+        {
+            filtered = filtered.Where(t => t.AgentId == agentId);
+        }
+
+        FilteredTasks = filtered.ToList();
+        StateHasChanged();
+    }
+
+    private string FormatDate(DateTime date)
+    {
+        return date.ToString("MMM dd, yyyy");
+    }
+
+    private void ShowAddTaskModal()
+    {
+        CurrentTask = new TaskItem
+        {
+            DueDate = DateTime.Today.AddDays(1),
+            Status = "pending",
+            Priority = "medium"
+        };
+        EditingTask = false;
+        ShowModal = true;
+        StateHasChanged();
+    }
+
+    private void EditTask(int taskId)
+    {
+        var task = Tasks.FirstOrDefault(t => t.Id == taskId);
+        if (task != null)
+        {
+            CurrentTask = new TaskItem
+            {
+                Id = task.Id,
+                Title = task.Title,
+                Description = task.Description,
+                AgentId = task.AgentId,
+                DueDate = task.DueDate,
+                Priority = task.Priority,
+                Status = task.Status,
+                CreatedAt = task.CreatedAt
+            };
+            EditingTask = true;
+            ShowModal = true;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseModal()
+    {
+        ShowModal = false;
+        CurrentTask = new TaskItem();
+        StateHasChanged();
+    }
+
+    private async Task SaveTask()
+    {
+        IsLoading = true;
+        LoadingMessage = "Saving task...";
+        StateHasChanged();
+
+        await Task.Delay(500); // Simulate API call
+
+        if (EditingTask)
+        {
+            var existingTask = Tasks.FirstOrDefault(t => t.Id == CurrentTask.Id);
+            if (existingTask != null)
+            {
+                existingTask.Title = CurrentTask.Title;
+                existingTask.Description = CurrentTask.Description;
+                existingTask.AgentId = CurrentTask.AgentId;
+                existingTask.DueDate = CurrentTask.DueDate;
+                existingTask.Priority = CurrentTask.Priority;
+                existingTask.Status = CurrentTask.Status;
+            }
+        }
+        else
+        {
+            var newId = Tasks.Any() ? Tasks.Max(t => t.Id) + 1 : 1;
+            CurrentTask.Id = newId;
+            CurrentTask.CreatedAt = DateTime.Now;
+            Tasks.Add(CurrentTask);
+        }
+
+        IsLoading = false;
+        ShowModal = false;
+        FilterTasks();
+
+        // Show success message
+       // await JSRuntime.InvokeVoidAsync("alert", $"Task {(EditingTask ? "updated" : "added")} successfully!");
+    }
+
+    private async Task DeleteTask(int taskId)
+    {
+        var result = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this task?");
+        if (result)
+        {
+            Tasks.RemoveAll(t => t.Id == taskId);
+            FilterTasks();
+            //await JSRuntime.InvokeVoidAsync("alert", "Task deleted successfully!");
+        }
+    }
+
+    private void UpdateTaskStatus(int taskId, string? newStatus)
+    {
+        if (string.IsNullOrEmpty(newStatus)) return;
+
+        var task = Tasks.FirstOrDefault(t => t.Id == taskId);
+        if (task != null)
+        {
+            task.Status = newStatus;
+            FilterTasks(); // Refresh the filtered list
+            Console.WriteLine($"Task {taskId} status updated to {newStatus}");
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        IsLoading = true;
+        LoadingMessage = "Refreshing data...";
+        StateHasChanged();
+
+        // Show refresh animation using JavaScript
+        if (taskModule != null)
+        {
+            await taskModule.InvokeVoidAsync("showRefreshAnimation", "refreshBtn");
+        }
+        else
+        {
+            // Fallback: just wait without animation
+            await Task.Delay(1000);
+        }
+
+        // Simulate data refresh by re-filtering
+        FilterTasks();
+
+        IsLoading = false;
+        //await JSRuntime.InvokeVoidAsync("alert", "Data refreshed successfully!");
+    }
+
+    private async Task ExportTasks()
+    {
+        IsLoading = true;
+        LoadingMessage = "Exporting tasks...";
+        StateHasChanged();
+
+        // Use JavaScript module for export if available
+        if (taskModule != null)
+        {
+            await taskModule.InvokeVoidAsync("exportTasks");
+        }
+        else
+        {
+            // Fallback export functionality
+            await Task.Delay(1000); // Simulate export process
+           // await JSRuntime.InvokeVoidAsync("alert", "Tasks exported successfully! CSV file downloaded.");
+        }
+
+        IsLoading = false;
+    }
+
+    // Model Classes
+    public class TaskItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int AgentId { get; set; }
+        public DateTime DueDate { get; set; }
+        public string Priority { get; set; } = string.Empty;
+        public string Status { get; set; } = "pending";
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class Agent
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Avatar { get; set; } = string.Empty;
+    }
+}

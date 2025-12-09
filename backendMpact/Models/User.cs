@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace backendMpact.Models
 {
@@ -16,5 +16,8 @@ namespace backendMpact.Models
         [Required]
      
         public string Role { get; set; }
+
+        [Required]
+        public string Status {  get; set; }
     }
 }
