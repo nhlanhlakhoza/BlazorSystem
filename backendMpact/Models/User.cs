@@ -19,5 +19,10 @@ namespace backendMpact.Models
 
         [Required]
         public string Status {  get; set; }
+
+        [Required]
+        public string Department { get; set; }
+        [Required]
+       public DateTime? LastLogin { get; set; }
     }
 }

@@ -87,7 +87,7 @@
                             </span>
                         </td>
                         <td>@user.Department</td>
-                        <td>@FormatDate(user.LastLogin)</td>
+                        <td></td>
                         <td>
                             <span class="status-badge status-@user.Status">
                                 @user.Status.ToUpper()
@@ -157,6 +157,7 @@
                     <button type="submit" class="btn btn-primary">Save User</button>
                 </div>
             </EditForm>
+            <br />
             @if (!string.IsNullOrEmpty(SuccessMessage))
 {
     <div class="alert alert-success text-center">@SuccessMessage</div>
@@ -207,11 +208,11 @@
     {
         Users = new List<User>
         {
-            new User { FullName="John", LastName="Davis", Email="john.davis@company.com", Role="inspector", Department="Safety Inspection", LastLogin=DateTime.Now.AddDays(-5), Status="active" },
-            new User { FullName="Sarah", LastName="Johnson", Email="sarah.j@company.com", Role="inspector", Department="Electrical Systems", LastLogin=DateTime.Now.AddDays(-3), Status="active" },
-            new User { FullName="Michael", LastName="Chen", Email="michael.chen@company.com", Role="admin", Department="IT", LastLogin=DateTime.Now.AddDays(-2), Status="active" },
-            new User { FullName="Robert", LastName="Wilson", Email="robert.wilson@company.com", Role="manager", Department="Operations", LastLogin=DateTime.Now.AddDays(-7), Status="active" },
-            new User { FullName="Lisa", LastName="Martinez", Email="lisa.m@company.com", Role="inspector", Department="Structural Integrity", LastLogin=DateTime.Now.AddDays(-10), Status="inactive" }
+            new User { FullName="John", LastName="Davis", Email="john.davis@company.com", Role="inspector", Department="Safety Inspection", Status="active" },
+            new User { FullName="Sarah", LastName="Johnson", Email="sarah.j@company.com", Role="inspector", Department="Electrical Systems", Status="active" },
+            new User { FullName="Michael", LastName="Chen", Email="michael.chen@company.com", Role="admin", Department="IT",  Status="active" },
+            new User { FullName="Robert", LastName="Wilson", Email="robert.wilson@company.com", Role="manager", Department="Operations", Status="active" },
+            new User { FullName="Lisa", LastName="Martinez", Email="lisa.m@company.com", Role="inspector", Department="Structural Integrity",  Status="inactive" }
         };
     }
 
@@ -278,7 +279,7 @@
                 Email = user.Email,
                 Role = user.Role,
                 Department = user.Department,
-                LastLogin = user.LastLogin,
+                //LastLogin = user.LastLogin,
                 Status = user.Status
             };
             EditingUser = true;
@@ -294,47 +295,43 @@
         CurrentUser = new User();
     }
 
-   private async Task SaveUser()
-{
-    try
+    private async Task SaveUser()
     {
-        IsLoading = true;
-        LoadingMessage = "Saving user...";
-        SuccessMessage = "";
-        ErrorMessage = "";
-        StateHasChanged();
-
-        var response = await Http.PostAsJsonAsync("https://localhost:7272/api/users/create", CurrentUser);
-
-        if (response.IsSuccessStatusCode)
+        try
         {
-            // Try to read user object
-            var createdUser = await response.Content.ReadFromJsonAsync<User>();
+            IsLoading = true;
+            LoadingMessage = "Saving user...";
+            StateHasChanged();
 
-            if (createdUser != null)
-            {
-                Users.Add(createdUser);
-                SuccessMessage = "User saved successfully!";
-            }
-            else
-            {
-                // API returned text instead of JSON
-                var msg = await response.Content.ReadAsStringAsync();
-                SuccessMessage = msg;
-            }
+            var response = await Http.PostAsJsonAsync("https://localhost:7272/api/users/create", CurrentUser);
 
-            await Task.Delay(2000); // Show success for 2 seconds
+            if (response.IsSuccessStatusCode)
+            {
+
+            IsLoading = false;
+
+            SuccessMessage = "User created successfully!";
+            ErrorMessage = "";
+            StateHasChanged();
+
+            
+            await Task.Delay(3000);
+
             CloseModal();
+
+            
         }
         else
         {
-            var errorText = await response.Content.ReadAsStringAsync();
-            ErrorMessage = errorText;
+            // API returned an error TEXT not JSON
+            ErrorMessage = await response.Content.ReadAsStringAsync();
+            SuccessMessage = "";
         }
     }
     catch (Exception ex)
     {
         ErrorMessage = "Unexpected error: " + ex.Message;
+        SuccessMessage = "";
     }
     finally
     {
@@ -342,6 +339,7 @@
         StateHasChanged();
     }
 }
+
 
 
 
@@ -383,7 +381,8 @@
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public string Department { get; set; } = string.Empty;
-        public DateTime? LastLogin { get; set; }
+     //ublic DateTime? LastLogin { get; set; } = DateTime.Now;
+
         public string Status { get; set; } = "active";
         public string password { get; set; } = "";
     }

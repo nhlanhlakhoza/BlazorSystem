@@ -43,7 +43,9 @@ namespace backendMpact.Services
                 LastName=request.LastName,
                 Password = hashedPassword,
                 Role = request.Role,
-                Status="Active"
+                Status="Active",
+                Department=request.Department,
+                LastLogin=DateTime.Now,
             };
 
             //  Save to database
