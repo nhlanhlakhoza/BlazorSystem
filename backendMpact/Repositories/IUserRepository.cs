@@ -1,4 +1,4 @@
-﻿using backendMpact.Models;
+using backendMpact.Models;
 
 namespace backendMpact.Repositories
 {
@@ -7,7 +7,7 @@ namespace backendMpact.Repositories
         void Add(User user);
         Task<User> GetByEmailAsync(string email);
         Task<bool> UserExists(string email);
-   
+        Task<List<User>>GetAllUsers();
     }
 }
 

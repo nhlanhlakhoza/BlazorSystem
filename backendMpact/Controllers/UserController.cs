@@ -83,7 +83,12 @@ namespace backendMpact.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _service.GetAllUsers();
+            return Ok(users);
+        }
 
     }
 }

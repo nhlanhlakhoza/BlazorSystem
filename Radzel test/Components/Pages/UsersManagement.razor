@@ -204,17 +204,19 @@
         FilterUsers();
     }
 
-    private void LoadSampleData()
-    {
-        Users = new List<User>
-        {
-            new User { FullName="John", LastName="Davis", Email="john.davis@company.com", Role="inspector", Department="Safety Inspection", Status="active" },
-            new User { FullName="Sarah", LastName="Johnson", Email="sarah.j@company.com", Role="inspector", Department="Electrical Systems", Status="active" },
-            new User { FullName="Michael", LastName="Chen", Email="michael.chen@company.com", Role="admin", Department="IT",  Status="active" },
-            new User { FullName="Robert", LastName="Wilson", Email="robert.wilson@company.com", Role="manager", Department="Operations", Status="active" },
-            new User { FullName="Lisa", LastName="Martinez", Email="lisa.m@company.com", Role="inspector", Department="Structural Integrity",  Status="inactive" }
-        };
-    }
+   private void LoadSampleData()
+ {
+     try
+     {
+         Users = Http.GetFromJsonAsync<List<User>>(
+             "https://localhost:7272/api/users/all"
+         ).GetAwaiter().GetResult();
+     }
+     catch (Exception ex)
+     {
+         Console.WriteLine("Failed to load users: " + ex.Message);
+     }
+ }
 
     private void FilterUsers()
     {

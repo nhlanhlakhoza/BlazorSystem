@@ -1,4 +1,4 @@
-﻿using backendMpact.Data;
+using backendMpact.Data;
 using backendMpact.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,5 +28,12 @@ namespace backendMpact.Repositories
             return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
 
+
+
+        public async Task<List<User>> GetAllUsers()
+        {
+            return await _context.Users.ToListAsync();
+        }
     }
 }
+    

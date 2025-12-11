@@ -13,7 +13,7 @@ namespace backendMpact.Services
     public class UserService : IUserService
     {
         // Hardcoded JWT values
-        private const string JwtKey = "4bb6d1dfbafb64a681139d1586b6f1160d18159afd57c8c79136d7490630407c"; 
+        private const string JwtKey = "4bb6d1dfbafb64a681139d1586b6f1160d18159afd57c8c79136d7490630407c";
         private const string JwtIssuer = "MyBackendApp";
         private const string JwtAudience = "BlazorClient";
 
@@ -39,13 +39,13 @@ namespace backendMpact.Services
             {
 
                 Email = request.Email,
-                FullName=request.FullName,
-                LastName=request.LastName,
+                FullName = request.FullName,
+                LastName = request.LastName,
                 Password = hashedPassword,
                 Role = request.Role,
-                Status="Active",
-                Department=request.Department,
-                LastLogin=DateTime.Now,
+                Status = "Active",
+                Department = request.Department,
+                LastLogin = DateTime.Now,
             };
 
             //  Save to database
@@ -109,5 +109,21 @@ namespace backendMpact.Services
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+
+        public async Task<List<AllUsers>> GetAllUsers()
+        {
+            var users = await _repo.GetAllUsers();
+
+            return users.Select(u => new AllUsers
+            {
+                Id = u.Id,
+                FullName = u.FullName,
+                Email = u.Email,
+                Role = u.Role,
+                Department= u.Department,
+            }).ToList();
+        }
+
     }
 }
