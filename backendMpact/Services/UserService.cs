@@ -119,6 +119,7 @@ namespace backendMpact.Services
             {
                 Id = u.Id,
                 FullName = u.FullName,
+                Lastname = u.LastName,
                 Email = u.Email,
                 Role = u.Role,
                 Department= u.Department,
