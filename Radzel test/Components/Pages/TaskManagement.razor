@@ -117,6 +117,12 @@
                                 <button class="icon-btn delete-btn" @onclick="() => DeleteTask(task.Id)">
                                     <i class="fas fa-trash"></i>
                                 </button>
+                                @if (task.Status == "completed")
+                                {
+                                    <button class="icon-btn view-btn" @onclick="() => ViewTask(task.Id)">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                }
                             </div>
                         </td>
                     </tr>
@@ -125,6 +131,85 @@
         </table>
     </div>
 </div>
+@if (ShowViewModal)
+{
+    <div class="modal show">
+        <div class="modal-content view-modal">
+            <div class="modal-header">
+                <h3>Task Details</h3>
+                <button class="close-btn" @onclick="CloseViewModal">&times;</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="task-info-section">
+                    <p><strong>Title:</strong> @ViewTaskItem.Title</p>
+                    <p><strong>Description:</strong> @ViewTaskItem.Description</p>
+                    <p><strong>Assigned Agent:</strong> @Agents.FirstOrDefault(a => a.Id == ViewTaskItem.AgentId)?.Name</p>
+                    <p><strong>Due Date:</strong> @FormatDate(ViewTaskItem.DueDate)</p>
+                    <p><strong>Priority:</strong> @ViewTaskItem.Priority</p>
+                    <p><strong>Status:</strong> @ViewTaskItem.Status</p>
+                </div>
+
+                <hr />
+
+                <!-- Tabs for PDFs and Images -->
+                <div class="tabs">
+                    <button class="tab-button @(ActiveTab == "pdf" ? "active" : "")"
+                            @onclick='() => SwitchTab("pdf")'>
+                        Uploaded PDFs (@ViewTaskFiles.Count)
+                    </button>
+                    <button class="tab-button @(ActiveTab == "images" ? "active" : "")"
+                            @onclick='() => SwitchTab("images")'>
+                        Uploaded Pictures (@ViewTaskImages.Count)
+                    </button>
+                </div>
+
+
+
+                <div class="tab-content">
+                    @if (ActiveTab == "pdf")
+                    {
+                        @if (ViewTaskFiles.Any())
+                        {
+                            @foreach (var file in ViewTaskFiles)
+                            {
+                                <div class="pdf-preview">
+                                    <p>@file.FileName</p>
+                                    <iframe src="@file.Url" width="100%" height="400px"></iframe>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <p>No PDFs uploaded.</p>
+                        }
+                    }
+                    else if (ActiveTab == "images")
+                    {
+                        @if (ViewTaskImages.Any())
+                        {
+                            <div class="image-gallery">
+                                @foreach (var img in ViewTaskImages)
+                                {
+                                    <img src="@img.Url" alt="@img.FileName" class="uploaded-image" />
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p>No images uploaded.</p>
+                        }
+                    }
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" @onclick="CloseViewModal">Close</button>
+            </div>
+        </div>
+    </div>
+}
+
 
 <!-- Add/Edit Task Modal -->
 @if (ShowModal)
@@ -219,6 +304,10 @@
     private string priorityFilter = "";
     private string agentFilter = "";
     private IJSObjectReference? taskModule;
+    private bool ShowViewModal = false;
+    private TaskItem ViewTaskItem = new();
+    private List<FileItem> ViewTaskFiles = new();
+    private List<FileItem> ViewTaskImages = new();
 
     // Properties with getters/setters to trigger filtering
     private string SearchTerm
@@ -259,6 +348,12 @@
             agentFilter = value;
             FilterTasks();
         }
+    }
+    private string ActiveTab = "pdf"; 
+
+    private void SwitchTab(string tab)
+    {
+        ActiveTab = tab;
     }
 
     protected override async Task OnInitializedAsync()
@@ -535,6 +630,39 @@
         IsLoading = false;
     }
 
+    private void ViewTask(int taskId)
+    {
+        var task = Tasks.FirstOrDefault(t => t.Id == taskId);
+        if (task != null)
+        {
+            ViewTaskItem = task;
+
+            // Replace with your actual logic to get uploaded files/images for this task
+            ViewTaskFiles = new List<FileItem>
+        {
+            new FileItem { FileName = "Report.pdf", Url = "/uploads/report.pdf", Type = "pdf" }
+        };
+            ViewTaskImages = new List<FileItem>
+        {
+            new FileItem { FileName = "Photo1.jpg", Url = "/uploads/photo1.jpg", Type = "image" },
+            new FileItem { FileName = "Photo2.jpg", Url = "/uploads/photo2.jpg", Type = "image" }
+        };
+
+            ShowViewModal = true;
+        }
+    }
+
+    private void CloseViewModal()
+    {
+        ShowViewModal = false;
+        ViewTaskItem = new TaskItem();
+        ViewTaskFiles.Clear();
+        ViewTaskImages.Clear();
+    }
+
+
+
+
     // Model Classes
     public class TaskItem
     {
@@ -553,5 +681,11 @@
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Avatar { get; set; } = string.Empty;
+    }
+    public class FileItem
+    {
+        public string FileName { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public string Type { get; set; } = ""; // "image" or "pdf"
     }
 }

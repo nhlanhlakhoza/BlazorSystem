@@ -201,12 +201,11 @@
     private bool EditingUser = false;
     private bool IsLoading = false;
     private string LoadingMessage = "";
-    private string SearchTerm = "";
-    private string RoleFilter = "";
-    private string StatusFilter = "";
+    private string roleFilter = "";
+    private string statusFilter = "";
     private string SuccessMessage = "";
     private string ErrorMessage = "";
-
+    private string searchTerm = "";
     private int pageSize = 4;
     private int pageIndex = 0;
     private int count => FilteredUsers.Count;
@@ -221,8 +220,33 @@
     }
 
 
-
-
+    private string SearchTerm
+    {
+        get => searchTerm;
+        set
+        {
+            searchTerm = value;
+            FilterUsers();
+        }
+    }
+    private string StatusFilter
+    {
+        get => statusFilter;
+        set
+        {
+            statusFilter = value;
+            FilterUsers();
+        }
+    }
+    private string RoleFilter
+    {
+        get => roleFilter;
+        set
+        {
+            roleFilter = value;
+            FilterUsers();
+        }
+    }
 
     protected override void OnInitialized()
     {
@@ -270,7 +294,7 @@
         FilteredUsers = filtered.ToList();
         StateHasChanged();
     }
-
+    
     private string GetUserInitials(string firstName, string lastName)
     {
         return string.Concat(
