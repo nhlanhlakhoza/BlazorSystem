@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
+@using Radzen
 
 @rendermode InteractiveServer
 <PageTitle>Users Management - Inspection Pro</PageTitle>
@@ -18,10 +19,7 @@
             <i class="fas fa-user-plus"></i>
             Add New User
         </button>
-        <button class="action-btn export" @onclick="ExportUsers">
-            <i class="fas fa-file-export"></i>
-            Export Users
-        </button>
+        
         <button class="action-btn refresh" @onclick="RefreshData">
             <i class="fas fa-sync-alt"></i>
             Refresh Data
@@ -48,6 +46,7 @@
             </select>
         </div>
     </div>
+   
 
     <!-- Users Table -->
     <div class="users-table-container">
@@ -69,14 +68,14 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var user in FilteredUsers)
+                @foreach (var user in PagedUsers)
                 {
                     <tr>
                         <td>
                             <div class="user-info">
                                 <div class="user-avatar">@GetUserInitials(user.FullName, user.LastName)</div>
                                 <div class="user-details">
-                                    <h4>@($"{user.FullName} {user.LastName}".ToUpper())</h4>
+                                    <h4 style="font-size: calc(0.6rem + .3vw);"> @($"{user.FullName} {user.LastName}".ToUpper())</h4>
                                     <div class="user-email">@user.Email</div>
                                 </div>
                             </div>
@@ -107,7 +106,17 @@
                 }
             </tbody>
         </table>
+ 
+      
     </div>
+    <div class="pager-container">
+    <RadzenPager Count="@count"
+                 PageSize="@pageSize"
+                 PageNumbersCount="6"
+                 PageChanged="@PageChanged" />
+</div>
+
+
 </div>
 
 @if (ShowModal)
@@ -198,25 +207,42 @@
     private string SuccessMessage = "";
     private string ErrorMessage = "";
 
+    private int pageSize = 4;
+    private int pageIndex = 0;
+    private int count => FilteredUsers.Count;
+
+    private IEnumerable<User> PagedUsers =>
+        FilteredUsers.Skip(pageIndex * pageSize).Take(pageSize);
+
+
+    void PageChanged(Radzen.PagerEventArgs args)
+    {
+        pageIndex = args.PageIndex;
+    }
+
+
+
+
+
     protected override void OnInitialized()
     {
         LoadSampleData();
         FilterUsers();
     }
 
-   private void LoadSampleData()
- {
-     try
-     {
-         Users = Http.GetFromJsonAsync<List<User>>(
-             "https://localhost:7272/api/users/all"
-         ).GetAwaiter().GetResult();
-     }
-     catch (Exception ex)
-     {
-         Console.WriteLine("Failed to load users: " + ex.Message);
-     }
- }
+    private void LoadSampleData()
+    {
+        try
+        {
+            Users = Http.GetFromJsonAsync<List<User>>(
+                "https://localhost:7272/api/users/all"
+            ).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Failed to load users: " + ex.Message);
+        }
+    }
 
     private void FilterUsers()
     {
@@ -310,37 +336,37 @@
             if (response.IsSuccessStatusCode)
             {
 
-            IsLoading = false;
+                IsLoading = false;
 
-            SuccessMessage = "User created successfully!";
-            ErrorMessage = "";
-            StateHasChanged();
+                SuccessMessage = "User created successfully!";
+                ErrorMessage = "";
+                StateHasChanged();
 
-            
-            await Task.Delay(3000);
 
-            CloseModal();
+                await Task.Delay(3000);
 
-            
+                CloseModal();
+
+
+            }
+            else
+            {
+                // API returned an error TEXT not JSON
+                ErrorMessage = await response.Content.ReadAsStringAsync();
+                SuccessMessage = "";
+            }
         }
-        else
+        catch (Exception ex)
         {
-            // API returned an error TEXT not JSON
-            ErrorMessage = await response.Content.ReadAsStringAsync();
+            ErrorMessage = "Unexpected error: " + ex.Message;
             SuccessMessage = "";
         }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
-    catch (Exception ex)
-    {
-        ErrorMessage = "Unexpected error: " + ex.Message;
-        SuccessMessage = "";
-    }
-    finally
-    {
-        IsLoading = false;
-        StateHasChanged();
-    }
-}
 
 
 
@@ -355,15 +381,6 @@
         }
     }
 
-    private async Task ExportUsers()
-    {
-        IsLoading = true;
-        LoadingMessage = "Exporting users...";
-        StateHasChanged();
-        await Task.Delay(1000);
-        IsLoading = false;
-        await JSRuntime.InvokeVoidAsync("alert", "Users exported successfully!");
-    }
 
     private async Task RefreshData()
     {
@@ -371,9 +388,9 @@
         LoadingMessage = "Refreshing data...";
         StateHasChanged();
         await Task.Delay(1000);
-        FilterUsers();
+        LoadSampleData();
         IsLoading = false;
-        await JSRuntime.InvokeVoidAsync("alert", "Data refreshed successfully!");
+        
     }
 
     public class User
@@ -383,8 +400,6 @@
         public string Email { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
         public string Department { get; set; } = string.Empty;
-     //ublic DateTime? LastLogin { get; set; } = DateTime.Now;
-
         public string Status { get; set; } = "active";
         public string password { get; set; } = "";
     }

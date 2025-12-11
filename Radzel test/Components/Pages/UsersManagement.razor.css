@@ -460,3 +460,36 @@ input:checked + .slider {
         overflow-x: auto;
     }
 }
+
+.pager-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 1rem; 
+    margin-bottom: 1rem; 
+}
+
+    .pager-container .rz-pager {
+        width: auto !important; 
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 0.5rem;
+        background-color: #f8f9fa; 
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+    }
+.rz-pager .rz-pager-button {
+    background-color: #007bff;
+    color: white;
+    border-radius: 4px;
+    padding: 0.4rem 0.8rem;
+}
+
+    .rz-pager .rz-pager-button:hover {
+        background-color: #0056b3;
+    }
+
+.rz-pager .rz-pager-number.rz-selected {
+    background-color: #28a745 !important;
+    color: white !important;
+}
