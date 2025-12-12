@@ -2,7 +2,8 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject IJSRuntime JSRuntime
 @using BlazorBootstrap
-
+@using static System.Net.WebRequestMethods
+@inject HttpClient Http
 @rendermode InteractiveServer
 
 <PageTitle>Task Management - Inspection Pro</PageTitle>
@@ -256,15 +257,7 @@
                         </InputSelect>
                         <ValidationMessage For="@(() => CurrentTask.Priority)" />
                     </div>
-                    <div class="form-group">
-                        <label for="taskStatus">Status *</label>
-                        <InputSelect id="taskStatus" @bind-Value="@CurrentTask.Status" class="form-control">
-                            <option value="pending">Pending</option>
-                            <option value="in-progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                        </InputSelect>
-                        <ValidationMessage For="@(() => CurrentTask.Status)" />
-                    </div>
+                  
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
@@ -368,27 +361,32 @@
         }
     }
 
-    private void LoadSampleData()
+    private async Task LoadSampleData()
     {
-        // Sample agents
-        Agents = new List<Agent>
+        try
         {
-            new Agent { Id = 1, Name = "John Davis", Avatar = "JD" },
-            new Agent { Id = 2, Name = "Sarah Johnson", Avatar = "SJ" },
-            new Agent { Id = 3, Name = "Michael Chen", Avatar = "MC" },
-            new Agent { Id = 4, Name = "Robert Wilson", Avatar = "RW" },
-            new Agent { Id = 5, Name = "Lisa Martinez", Avatar = "LM" }
-        };
+            // Fetch inspectors from API
+            var inspectors = await Http.GetFromJsonAsync<List<Agent>>("https://localhost:7272/api/users/inspectors");
 
-        // Sample tasks
-        Tasks = new List<TaskItem>
+            if (inspectors != null)
+            {
+                Agents = inspectors.Select(i => new Agent
+                {
+                    Id = i.Id,
+                    FullName= $"{i.FullName} {i.LastName}",
+                    Avatar = $"{(string.IsNullOrEmpty(i.FullName) ? "" : i.FullName[0].ToString())}{(string.IsNullOrEmpty(i.LastName) ? "" : i.LastName[0].ToString())}".ToUpper()
+                }).ToList();
+            }
+
+            
+            Tasks = new List<TaskItem>
         {
             new TaskItem
             {
                 Id = 1,
                 Title = "Safety Inspection - Building A",
                 Description = "Complete safety inspection for Building A including fire exits and equipment",
-                AgentId = 1,
+                AgentId = Agents.ElementAtOrDefault(0)?.Id ?? 1,
                 DueDate = new DateTime(2024, 2, 20),
                 Priority = "high",
                 Status = "pending",
@@ -399,7 +397,7 @@
                 Id = 2,
                 Title = "Electrical System Check",
                 Description = "Inspect electrical panels and wiring in the main facility",
-                AgentId = 2,
+                AgentId = Agents.ElementAtOrDefault(1)?.Id ?? 2,
                 DueDate = new DateTime(2024, 2, 18),
                 Priority = "high",
                 Status = "in-progress",
@@ -410,7 +408,7 @@
                 Id = 3,
                 Title = "Fire Safety Audit",
                 Description = "Quarterly fire safety audit for all buildings",
-                AgentId = 3,
+                AgentId = Agents.ElementAtOrDefault(2)?.Id ?? 3,
                 DueDate = new DateTime(2024, 2, 25),
                 Priority = "medium",
                 Status = "pending",
@@ -421,7 +419,7 @@
                 Id = 4,
                 Title = "Structural Integrity Report",
                 Description = "Assess structural integrity of older buildings",
-                AgentId = 4,
+                AgentId = Agents.ElementAtOrDefault(3)?.Id ?? 4,
                 DueDate = new DateTime(2024, 2, 15),
                 Priority = "high",
                 Status = "overdue",
@@ -432,14 +430,20 @@
                 Id = 5,
                 Title = "Plumbing System Inspection",
                 Description = "Routine inspection of plumbing systems in residential units",
-                AgentId = 5,
+                AgentId = Agents.ElementAtOrDefault(4)?.Id ?? 5,
                 DueDate = new DateTime(2024, 3, 1),
                 Priority = "low",
                 Status = "completed",
                 CreatedAt = new DateTime(2024, 2, 1)
             }
         };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error loading sample data: " + ex.Message);
+        }
     }
+
 
     private void FilterTasks()
     {
@@ -675,7 +679,10 @@
     public class Agent
     {
         public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        // Computed property for full name
+        public string Name => $"{FullName} {LastName}";
         public string Avatar { get; set; } = string.Empty;
     }
     public class FileItem
@@ -684,4 +691,5 @@
         public string Url { get; set; } = string.Empty;
         public string Type { get; set; } = ""; // "image" or "pdf"
     }
+
 }

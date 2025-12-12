@@ -135,6 +135,7 @@ namespace backendMpact.Services
             {
                 Id = u.Id,
                 FullName = u.FullName,
+                LastName= u.LastName,
                 Email = u.Email
             }).ToList();
         }
