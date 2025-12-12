@@ -9,6 +9,7 @@ namespace backendMpact.Data
         {
         }
         public DbSet<User> Users { get; set; }   // Creates Users table on the database
+        public DbSet<TaskItem> Tasks { get; set; }
     }
 }
 

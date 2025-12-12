@@ -3,6 +3,7 @@ using backendMpact.DTO;
 using backendMpact.Models;
 using backendMpact.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Net.Mail;
 
@@ -24,24 +25,27 @@ namespace backendMpact.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> CreateUser(RegisterRequest request)
         {
-            // Check if user already exists
+           
             if (await _service.UserExists(request.Email))
                 return BadRequest("User already exists");
 
-            // Generate a random password
+           
             request.Password = GenerateRandomPassword(10);
 
             try
             {
 
                 await _service.CreateUser(request);
-               
-                // Send password via email
+
+                
                 var emailSent = await _emailService.SendEmailAsync(
-                    request.Email,
-                    "Your New Password",
-                    $"Hello {request.Email},\n\nYour new password is: {request.Password}\n\nPlease change it after login."
-                );
+      request.Email,
+      "Your New Password",
+      $"Hello {request.FullName},\n\nYour new password is: {request.Password}\n\nPlease change it after login.",
+      null // no attachments
+         );
+
+
 
                 if (!emailSent)
                 {
@@ -89,6 +93,12 @@ namespace backendMpact.Controllers
             var users = await _service.GetAllUsers();
             return Ok(users);
         }
-
+        // GET: api/users/inspectors
+        [HttpGet("inspectors")]
+        public async Task<IActionResult> GetInspectors()
+        {
+            var inspectors = await _service.GetInspectorsAsync();
+            return Ok(inspectors);
+        }
     }
 }

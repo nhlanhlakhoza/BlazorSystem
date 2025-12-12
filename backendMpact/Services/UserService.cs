@@ -2,6 +2,7 @@ using backendMpact.DTO;
 using backendMpact.Models;
 using backendMpact.Repositories;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -125,6 +126,18 @@ namespace backendMpact.Services
                 Department= u.Department,
             }).ToList();
         }
+        public async Task<List<UserDto>> GetInspectorsAsync()
+        {
+            var inspectors = await _repo.GetInspectorsAsync();
 
-    }
+            // Map to DTO
+            return inspectors.Select(u => new UserDto
+            {
+                Id = u.Id,
+                FullName = u.FullName,
+                Email = u.Email
+            }).ToList();
+        }
+    
+}
 }

@@ -12,7 +12,14 @@ namespace backendMpact.Services
             _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
+        // Original method without attachments
         public async Task<bool> SendEmailAsync(string to, string subject, string body)
+        {
+            return await SendEmailAsync(to, subject, body, null);
+        }
+
+        // Overload with attachments
+        public async Task<bool> SendEmailAsync(string to, string subject, string body, List<string>? attachmentPaths)
         {
             try
             {
@@ -30,7 +37,6 @@ namespace backendMpact.Services
                 Console.WriteLine($"FromName: {fromName}");
                 Console.WriteLine($"App Password (length only): {smtpPass?.Length}");
 
-                // Validate config
                 if (string.IsNullOrWhiteSpace(fromEmail) || string.IsNullOrWhiteSpace(smtpPass))
                 {
                     Console.WriteLine("[ERROR] Missing FromEmail OR SmtpPass in appsettings.json");
@@ -43,7 +49,7 @@ namespace backendMpact.Services
                 var client = new SmtpClient(smtpHost, smtpPort)
                 {
                     Credentials = new NetworkCredential(fromEmail, smtpPass),
-                    EnableSsl = true,  // Gmail requires SSL
+                    EnableSsl = true,
                     DeliveryMethod = SmtpDeliveryMethod.Network,
                     Timeout = 15000
                 };
@@ -59,6 +65,18 @@ namespace backendMpact.Services
                 msg.To.Add(to);
                 msg.ReplyToList.Add(new MailAddress(fromEmail));
 
+                // Add attachments if any
+                if (attachmentPaths != null && attachmentPaths.Count > 0)
+                {
+                    foreach (var path in attachmentPaths)
+                    {
+                        if (!string.IsNullOrEmpty(path) && System.IO.File.Exists(path))
+                        {
+                            msg.Attachments.Add(new Attachment(path));
+                        }
+                    }
+                }
+
                 Console.WriteLine($"[DEBUG] Attempting to send email...");
 
                 await client.SendMailAsync(msg);
@@ -68,19 +86,12 @@ namespace backendMpact.Services
             }
             catch (SmtpException ex)
             {
-                Console.WriteLine($"[SMTP ERROR] Status: {ex.StatusCode}");
-                Console.WriteLine($"[SMTP ERROR] Message: {ex.Message}");
-                if (ex.InnerException != null)
-                    Console.WriteLine($"[SMTP INNER] {ex.InnerException.Message}");
-
+                Console.WriteLine($"[SMTP ERROR] Status: {ex.StatusCode}, Message: {ex.Message}");
                 return false;
             }
             catch (Exception ex)
             {
                 Console.WriteLine("[ERROR] Exception when sending email: " + ex.Message);
-                if (ex.InnerException != null)
-                    Console.WriteLine("[INNER EXCEPTION] " + ex.InnerException.Message);
-
                 return false;
             }
         }

@@ -34,6 +34,13 @@ namespace backendMpact.Repositories
         {
             return await _context.Users.ToListAsync();
         }
+
+        public async Task<List<User>> GetInspectorsAsync()
+        {
+            return await _context.Users
+                .Where(u => u.Role.ToLower() == "inspector")
+                .ToListAsync();
+        }
     }
 }
     

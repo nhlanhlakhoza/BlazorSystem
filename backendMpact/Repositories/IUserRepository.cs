@@ -8,6 +8,7 @@ namespace backendMpact.Repositories
         Task<User> GetByEmailAsync(string email);
         Task<bool> UserExists(string email);
         Task<List<User>>GetAllUsers();
+        Task<List<User>> GetInspectorsAsync();
     }
 }
 

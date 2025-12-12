@@ -10,5 +10,6 @@ namespace backendMpact.Services
         Task<bool> UserExists(string email);
         Task<DTO.LoginResponse> Login(LoginRequest request);
         Task<List<AllUsers>> GetAllUsers();
+        Task<List<UserDto>> GetInspectorsAsync();
     }
 }
