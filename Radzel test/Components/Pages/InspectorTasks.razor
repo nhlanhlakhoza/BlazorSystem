@@ -1,0 +1,361 @@
+@page "/inspector"
+@using Microsoft.AspNetCore.Components.Forms
+@inject IJSRuntime JSRuntime
+@inject HttpClient Http
+@using Radzen
+
+@rendermode InteractiveServer
+<PageTitle>Inspector - Tasks Management</PageTitle>
+
+<div class="users-container">
+    <div class="page-header">
+        <h1><i class="fas fa-tasks"></i> Pending Inspector Tasks</h1>
+    </div>
+
+    <div class="quick-actions">
+        <button class="action-btn refresh" @onclick="RefreshData">
+            <i class="fas fa-sync-alt"></i>
+            Refresh Tasks
+        </button>
+    </div>
+
+    <div class="search-section">
+        <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" @bind="SearchTerm" @bind:event="oninput" placeholder="Search tasks by case name or location..." />
+        </div>
+    </div>
+
+    <div class="users-table-container">
+        <div class="table-header">
+            <h2><i class="fas fa-list"></i> Pending Tasks</h2>
+            <div class="table-actions">
+                <span>@FilteredTasks.Count tasks</span>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Case Name</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var task in PagedTasks)
+                {
+                    <tr>
+                        <td>@task.CaseName</td>
+                        <td>@task.Location</td>
+                        <td>
+                            <span class="status-badge status-@task.Status">@task.Status</span>
+                        </td>
+                        <td>
+                           
+
+                             <button class="icon-btn view-btn" @onclick="() => OpenTaskModalFunc(task)">
+                                <i class="fas fa-eye"></i> Complete Task
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="pager-container">
+            <RadzenPager Count="@count"
+                         PageSize="@pageSize"
+                         PageNumbersCount="6"
+                         PageChanged="@PageChanged" />
+        </div>
+    </div>
+</div>
+
+@if (ShowModal)
+{
+    <div class="modal show">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>Complete Task</h3>
+                <button class="close-btn" @onclick="CloseModal">&times;</button>
+            </div>
+
+            <EditForm Model="@CurrentTask" OnValidSubmit="@SaveTask">
+                <DataAnnotationsValidator />
+
+                <div class="form-group">
+                    <label>Case Name</label>
+                    <InputText @bind-Value="@CurrentTask.CaseName" class="form-control" Disabled="true" />
+                </div>
+
+                <div class="form-group">
+                    <label>Location</label>
+                    <InputText @bind-Value="@CurrentTask.Location" class="form-control" Disabled="true" />
+                </div>
+
+                <div class="form-group">
+                    <label>Notes *</label>
+                    <InputTextArea @bind-Value="@CurrentTask.Notes" class="form-control" placeholder="Enter task notes..." />
+                </div>
+
+                <div class="form-group">
+                    <label>Upload Pictures</label>
+                    <InputFile OnChange="OnPictureSelected" multiple accept="image/*" />
+                    <div class="uploaded-images">
+                        @foreach (var img in CurrentTask.Pictures)
+                        {
+                            <div class="image-thumb">
+                                <img src="@img.DataUrl" />
+                                <button type="button" class="remove-image" @onclick="() => RemovePicture(img)">&times;</button>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Upload PDF (1 file)</label>
+                    <InputFile OnChange="OnPdfSelected" accept="application/pdf" />
+                    @if (!string.IsNullOrEmpty(CurrentTask.PdfName))
+                    {
+                        <div class="pdf-file">
+                            <i class="fas fa-file-pdf"></i> @CurrentTask.PdfName
+                        </div>
+                    }
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save & Complete</button>
+                </div>
+            </EditForm>
+
+            <br />
+            @if (!string.IsNullOrEmpty(SuccessMessage))
+            {
+                <div class="alert alert-success text-center">@SuccessMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="alert alert-danger text-center">@ErrorMessage</div>
+            }
+        </div>
+    </div>
+}
+
+@if (IsLoading)
+{
+    <div class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>@LoadingMessage</p>
+        </div>
+    </div>
+}
+
+<style>
+    .uploaded-images {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 5px;
+    }
+
+    .image-thumb {
+        position: relative;
+    }
+
+        .image-thumb img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid #007bff;
+        }
+
+    .remove-image {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #d9534f;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .pdf-file {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: #d9534f;
+        font-weight: bold;
+        margin-top: 5px;
+    }
+
+        .pdf-file i {
+            font-size: 1.5rem;
+        }
+</style>
+
+@code {
+    private List<InspectorTask> Tasks = new();
+    private List<InspectorTask> FilteredTasks = new();
+    private InspectorTask CurrentTask = new();
+    private bool ShowModal = false;
+    private bool IsLoading = false;
+    private string LoadingMessage = "";
+    private string searchTerm = "";
+    private int pageSize = 4;
+    private int pageIndex = 0;
+    private int count => FilteredTasks.Count;
+    private string ErrorMessage = "";
+    private string SuccessMessage = "";
+    private IEnumerable<InspectorTask> PagedTasks => FilteredTasks.Skip(pageIndex * pageSize).Take(pageSize);
+
+    private string SearchTerm
+    {
+        get => searchTerm;
+        set { searchTerm = value; FilterTasks(); }
+    }
+
+    protected override void OnInitialized()
+    {
+        LoadSampleData();
+        FilterTasks();
+    }
+
+    private void LoadSampleData()
+    {
+        Tasks = new List<InspectorTask>
+        {
+            new InspectorTask { Id=1, CaseName="Safety Inspection", Location="Building A", Status="Pending" },
+            new InspectorTask { Id=2, CaseName="Electrical Check", Location="Facility 1", Status="Pending" },
+            new InspectorTask { Id=3, CaseName="Fire Audit", Location="Building B", Status="Pending" },
+            new InspectorTask { Id=4, CaseName="Structural Review", Location="Building C", Status="Pending" }
+        };
+    }
+
+    private void FilterTasks()
+    {
+        FilteredTasks = Tasks.Where(t => t.Status == "Pending" &&
+                                         (string.IsNullOrEmpty(SearchTerm) ||
+                                          t.CaseName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                          t.Location.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)))
+                             .ToList();
+    }
+
+    void PageChanged(Radzen.PagerEventArgs args) => pageIndex = args.PageIndex;
+
+    private void OpenTaskModalFunc(InspectorTask task)
+    {
+        CurrentTask = task;
+        if (CurrentTask.Pictures == null) CurrentTask.Pictures = new List<TaskImage>();
+        ShowModal = true;
+    }
+
+    private void CloseModal()
+    {
+        ShowModal = false;
+        SuccessMessage = "";
+        ErrorMessage = "";
+        CurrentTask = new InspectorTask();
+    }
+
+    private async Task SaveTask()
+    {
+        try
+        {
+            IsLoading = true;
+            LoadingMessage = "Saving task...";
+            StateHasChanged();
+            await Task.Delay(1000);
+
+            // Automatically mark completed if notes & PDF exist
+            if (!string.IsNullOrEmpty(CurrentTask.Notes) && !string.IsNullOrEmpty(CurrentTask.PdfName))
+                CurrentTask.Status = "Completed";
+
+            var index = Tasks.FindIndex(t => t.Id == CurrentTask.Id);
+            if (index >= 0) Tasks[index] = CurrentTask;
+
+            FilterTasks();
+            SuccessMessage = "Task updated successfully!";
+            await Task.Delay(1500);
+            CloseModal();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "Unexpected error: " + ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        IsLoading = true;
+        LoadingMessage = "Refreshing tasks...";
+        StateHasChanged();
+        await Task.Delay(1000);
+        LoadSampleData();
+        FilterTasks();
+        IsLoading = false;
+    }
+
+    private async Task OnPictureSelected(InputFileChangeEventArgs e)
+    {
+        long maxFileSize = 50 * 1024 * 1024; // 50 MB
+
+        foreach (var file in e.GetMultipleFiles())
+        {
+            if (file.Size > maxFileSize)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"File {file.Name} is too large. Max 50 MB allowed.");
+                continue;
+            }
+
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream(maxFileSize).ReadAsync(buffer);
+            var base64 = Convert.ToBase64String(buffer);
+            CurrentTask.Pictures.Add(new TaskImage { FileName = file.Name, DataUrl = $"data:{file.ContentType};base64,{base64}" });
+        }
+    }
+
+
+    private void RemovePicture(TaskImage img)
+    {
+        CurrentTask.Pictures.Remove(img);
+    }
+
+    private void OnPdfSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        CurrentTask.PdfName = file.Name;
+    }
+
+    public class InspectorTask
+    {
+        public int Id { get; set; }
+        public string CaseName { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;
+        public string Status { get; set; } = "Pending";
+        public string Notes { get; set; } = string.Empty;
+        public string PdfName { get; set; } = string.Empty;
+        public List<TaskImage> Pictures { get; set; } = new List<TaskImage>();
+    }
+
+    public class TaskImage
+    {
+        public string FileName { get; set; } = "";
+        public string DataUrl { get; set; } = "";
+    }
+}
