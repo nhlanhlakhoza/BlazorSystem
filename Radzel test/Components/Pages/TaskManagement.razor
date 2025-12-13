@@ -2,10 +2,11 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject IJSRuntime JSRuntime
 @using BlazorBootstrap
+@using Radzel_test.Components.Services
 @using static System.Net.WebRequestMethods
 @inject HttpClient Http
 @rendermode InteractiveServer
-
+@inject UserStateService UserStateService
 <PageTitle>Task Management - Inspection Pro</PageTitle>
 
 <div class="tasks-container">
@@ -264,6 +265,16 @@
                     <button type="submit" class="btn btn-primary">Save Task</button>
                 </div>
             </EditForm>
+            <br />
+            @if (!string.IsNullOrEmpty(SuccessMessage))
+            {
+                <div class="alert alert-success text-center">@SuccessMessage</div>
+            }
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="alert alert-danger text-center">@ErrorMessage</div>
+            }
         </div>
     </div>
 }
@@ -284,6 +295,7 @@
     private List<TaskItem> FilteredTasks = new();
     private List<Agent> Agents = new();
     private TaskItem CurrentTask = new();
+    private TaskItem CreateTaskRequest = new();
     private bool ShowModal = false;
     private bool EditingTask = false;
     private bool IsLoading = false;
@@ -297,8 +309,9 @@
     private TaskItem ViewTaskItem = new();
     private List<FileItem> ViewTaskFiles = new();
     private List<FileItem> ViewTaskImages = new();
+    private string ErrorMessage = "";
 
-    // Properties with getters/setters to trigger filtering
+    private string SuccessMessage = "";
     private string SearchTerm
     {
         get => searchTerm;
@@ -344,6 +357,7 @@
     {
         ActiveTab = tab;
     }
+   
 
     protected override async Task OnInitializedAsync()
     {
@@ -363,86 +377,50 @@
 
     private async Task LoadSampleData()
     {
+        IsLoading = true; 
+        StateHasChanged(); 
         try
         {
-            // Fetch inspectors from API
-            var inspectors = await Http.GetFromJsonAsync<List<Agent>>("https://localhost:7272/api/users/inspectors");
+            
+            Agents = new List<Agent>();
+            Tasks = new List<TaskItem>();
 
+           
+            var inspectors = await Http.GetFromJsonAsync<List<Agent>>("https://localhost:7272/api/users/inspectors");
             if (inspectors != null)
             {
                 Agents = inspectors.Select(i => new Agent
                 {
                     Id = i.Id,
-                    FullName= $"{i.FullName} {i.LastName}",
-                    Avatar = $"{(string.IsNullOrEmpty(i.FullName) ? "" : i.FullName[0].ToString())}{(string.IsNullOrEmpty(i.LastName) ? "" : i.LastName[0].ToString())}".ToUpper()
+                    FullName = $"{i.FullName} {i.LastName}",
+                    Avatar = $"{(string.IsNullOrEmpty(i.FullName) ? "" : i.FullName[0].ToString())}" +
+                             $"{(string.IsNullOrEmpty(i.LastName) ? "" : i.LastName[0].ToString())}".ToUpper()
                 }).ToList();
             }
 
             
-            Tasks = new List<TaskItem>
-        {
-            new TaskItem
+            var tasksFromApi = await Http.GetFromJsonAsync<List<TaskItem>>("https://localhost:7272/api/Tasks/all");
+            if (tasksFromApi != null)
             {
-                Id = 1,
-                Title = "Safety Inspection - Building A",
-                Description = "Complete safety inspection for Building A including fire exits and equipment",
-                AgentId = Agents.ElementAtOrDefault(0)?.Id ?? 1,
-                DueDate = new DateTime(2024, 2, 20),
-                Priority = "high",
-                Status = "pending",
-                CreatedAt = new DateTime(2024, 2, 10)
-            },
-            new TaskItem
-            {
-                Id = 2,
-                Title = "Electrical System Check",
-                Description = "Inspect electrical panels and wiring in the main facility",
-                AgentId = Agents.ElementAtOrDefault(1)?.Id ?? 2,
-                DueDate = new DateTime(2024, 2, 18),
-                Priority = "high",
-                Status = "in-progress",
-                CreatedAt = new DateTime(2024, 2, 8)
-            },
-            new TaskItem
-            {
-                Id = 3,
-                Title = "Fire Safety Audit",
-                Description = "Quarterly fire safety audit for all buildings",
-                AgentId = Agents.ElementAtOrDefault(2)?.Id ?? 3,
-                DueDate = new DateTime(2024, 2, 25),
-                Priority = "medium",
-                Status = "pending",
-                CreatedAt = new DateTime(2024, 2, 5)
-            },
-            new TaskItem
-            {
-                Id = 4,
-                Title = "Structural Integrity Report",
-                Description = "Assess structural integrity of older buildings",
-                AgentId = Agents.ElementAtOrDefault(3)?.Id ?? 4,
-                DueDate = new DateTime(2024, 2, 15),
-                Priority = "high",
-                Status = "overdue",
-                CreatedAt = new DateTime(2024, 1, 28)
-            },
-            new TaskItem
-            {
-                Id = 5,
-                Title = "Plumbing System Inspection",
-                Description = "Routine inspection of plumbing systems in residential units",
-                AgentId = Agents.ElementAtOrDefault(4)?.Id ?? 5,
-                DueDate = new DateTime(2024, 3, 1),
-                Priority = "low",
-                Status = "completed",
-                CreatedAt = new DateTime(2024, 2, 1)
+                Tasks = tasksFromApi.Select(t =>
+                {
+                    t.AgentId = Agents.Any(a => a.Id == t.AgentId) ? t.AgentId : Agents.FirstOrDefault()?.Id ?? t.AgentId;
+                    return t;
+                }).ToList();
             }
-        };
         }
         catch (Exception ex)
         {
             Console.WriteLine("Error loading sample data: " + ex.Message);
         }
+        finally
+        {
+            FilterTasks();
+            IsLoading = false; 
+            StateHasChanged(); 
+        }
     }
+
 
 
     private void FilterTasks()
@@ -526,40 +504,85 @@
 
     private async Task SaveTask()
     {
+        // Convert UserId from UserStateService (Manager ID)
+        if (!int.TryParse(UserStateService.UserId, out int userId))
+        {
+            ErrorMessage = "Invalid user session. Please login again.";
+            return;
+        }
+
         IsLoading = true;
         LoadingMessage = "Saving task...";
         StateHasChanged();
 
-        await Task.Delay(500); // Simulate API call
-
-        if (EditingTask)
+        try
         {
-            var existingTask = Tasks.FirstOrDefault(t => t.Id == CurrentTask.Id);
-            if (existingTask != null)
+            await Task.Delay(500); //
+
+            // Create DTO to send to API
+            var dto = new CreateTaskDto
             {
-                existingTask.Title = CurrentTask.Title;
-                existingTask.Description = CurrentTask.Description;
-                existingTask.AgentId = CurrentTask.AgentId;
-                existingTask.DueDate = CurrentTask.DueDate;
-                existingTask.Priority = CurrentTask.Priority;
-                existingTask.Status = CurrentTask.Status;
+                Title = CurrentTask.Title,
+                Description = CurrentTask.Description,
+                AgentId = CurrentTask.AgentId.ToString(),   
+                AssignedBy = userId.ToString(),
+                Priority = CurrentTask.Priority,
+                DueDate = CurrentTask.DueDate
+            };
+
+           
+            var response = await Http.PostAsJsonAsync("https://localhost:7272/api/Tasks/add", dto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var savedTask = await response.Content.ReadFromJsonAsync<TaskItem>();
+
+                if (savedTask != null)
+                {
+                   
+                    if (EditingTask)
+                    {
+                        var index = Tasks.FindIndex(t => t.Id == CurrentTask.Id);
+                        if (index >= 0)
+                            Tasks[index] = savedTask;
+                    }
+                    else
+                    {
+                        Tasks.Add(savedTask);
+                    }
+
+                    FilterTasks();
+                    
+                }
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ErrorMessage = $"API Error: {error}";
             }
         }
-        else
+        catch (Exception ex)
         {
-            var newId = Tasks.Any() ? Tasks.Max(t => t.Id) + 1 : 1;
-            CurrentTask.Id = newId;
-            CurrentTask.CreatedAt = DateTime.Now;
-            Tasks.Add(CurrentTask);
+            ErrorMessage = "Unexpected error: " + ex.Message;
         }
+        finally
+        {
+            IsLoading = false;
+            SuccessMessage = "Task Created successfully!";
+          
+            StateHasChanged();
+            await Task.Delay(3000);
 
-        IsLoading = false;
-        ShowModal = false;
-        FilterTasks();
-
-        // Show success message
-       // await JSRuntime.InvokeVoidAsync("alert", $"Task {(EditingTask ? "updated" : "added")} successfully!");
+            CloseModal();
+        }
     }
+
+  
+
+    
+
+
+
 
     private async Task DeleteTask(int taskId)
     {
@@ -624,7 +647,7 @@
         {
             // Fallback export functionality
             await Task.Delay(1000); // Simulate export process
-           // await JSRuntime.InvokeVoidAsync("alert", "Tasks exported successfully! CSV file downloaded.");
+            // await JSRuntime.InvokeVoidAsync("alert", "Tasks exported successfully! CSV file downloaded.");
         }
 
         IsLoading = false;
@@ -674,6 +697,7 @@
         public string Priority { get; set; } = string.Empty;
         public string Status { get; set; } = "pending";
         public DateTime CreatedAt { get; set; }
+        public int AssignedBy { get; set; }
     }
 
     public class Agent
@@ -691,5 +715,16 @@
         public string Url { get; set; } = string.Empty;
         public string Type { get; set; } = ""; // "image" or "pdf"
     }
+    // DTO class to match backend
+    public class CreateTaskDto
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string AgentId { get; set; }
+        public string AssignedBy { get; set; }
+        public string Priority { get; set; } = string.Empty;
+        public DateTime DueDate { get; set; }
+    }
+
 
 }

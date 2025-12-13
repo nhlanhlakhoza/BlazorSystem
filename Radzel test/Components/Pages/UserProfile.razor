@@ -2,8 +2,10 @@
 @inject NavigationManager Navigation
 @using System.IdentityModel.Tokens.Jwt
 @using System.Linq
+@using Radzel_test.Components.Services
 @using Radzen.Blazor
 @using Radzen
+@inject UserStateService UserStateService
 @rendermode InteractiveServer
 
 <RadzenProfileMenu Style="background-color:#f7f7f7;">
@@ -37,7 +39,7 @@
     public string UserRole { get; set; } = "";
     public string  lastName { get; set; } = "";
     public string Initials { get; set; } = "";
-
+    public string UserId { get; set; } = "";
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -60,10 +62,14 @@
             UserEmail = jwt.Claims.FirstOrDefault(c => c.Type == "Email")?.Value ?? "";
             lastName=jwt.Claims.FirstOrDefault(c => c.Type == "lastName")?.Value ?? "";
             UserRole = jwt.Claims.FirstOrDefault(c => c.Type == "Role")?.Value ?? "";
+            UserId = jwt.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value ?? "";
 
+            //  STORE usrId IN USER STATE SERVICE
+            UserStateService.UserId = UserId;
+           
             if (!string.IsNullOrWhiteSpace(UserName)&& !string.IsNullOrWhiteSpace(lastName))
             {
-                // Combine first letter of first part of UserName and first letter of lastName
+      // Combine first letter of first part of UserName and first letter of lastName
     var parts = UserName.Split(' ');
     Initials = parts.Length >= 1
         ? $"{parts[0][0]}{lastName[0]}".ToUpper()
