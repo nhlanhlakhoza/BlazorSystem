@@ -38,9 +38,7 @@
             <select class="filter-select" @bind="StatusFilter">
                 <option value="">All Status</option>
                 <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
                 <option value="completed">Completed</option>
-                <option value="overdue">Overdue</option>
             </select>
             <select class="filter-select" @bind="PriorityFilter">
                 <option value="">All Priorities</option>
@@ -78,7 +76,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var task in FilteredTasks)
+                @foreach (var task in PagedTasks)
                 {
                     var agent = Agents.FirstOrDefault(a => a.Id == task.AgentId);
                     <tr>
@@ -101,12 +99,9 @@
                             </span>
                         </td>
                         <td>
-                            <select class="status-select" @onchange='@(e => UpdateTaskStatus(task.Id, e.Value?.ToString() ?? "pending"))'>
-                                <option value="pending" selected=@(task.Status == "pending")>Pending</option>
-                                <option value="in-progress" selected=@(task.Status == "in-progress")>In Progress</option>
-                                <option value="completed" selected=@(task.Status == "completed")>Completed</option>
-                                <option value="overdue" selected=@(task.Status == "overdue")>Overdue</option>
-                            </select>
+                            <span class="priority-badge priority-@task.Status.ToLower()">
+                                @task.Status.ToUpper()
+                            </span>
                         </td>
                         <td>
                             <div class="action-cell">
@@ -128,6 +123,12 @@
                 }
             </tbody>
         </table>
+    </div>
+    <div class="pager-container">
+        <RadzenPager Count="@count"
+                     PageSize="@pageSize"
+                     PageNumbersCount="6"
+                     PageChanged="@PageChanged" />
     </div>
 </div>
 @if (ShowViewModal)
@@ -310,8 +311,20 @@
     private List<FileItem> ViewTaskFiles = new();
     private List<FileItem> ViewTaskImages = new();
     private string ErrorMessage = "";
-
     private string SuccessMessage = "";
+
+    private int pageSize = 4;
+    private int pageIndex = 0;
+    private int count => FilteredTasks.Count;
+
+    private IEnumerable<TaskItem> PagedTasks =>
+        FilteredTasks.Skip(pageIndex * pageSize).Take(pageSize);
+
+
+    void PageChanged(Radzen.PagerEventArgs args)
+    {
+        pageIndex = args.PageIndex;
+    }
     private string SearchTerm
     {
         get => searchTerm;
@@ -378,6 +391,7 @@
     private async Task LoadSampleData()
     {
         IsLoading = true; 
+        LoadingMessage = "Loading Tasks...";
         StateHasChanged(); 
         try
         {
@@ -614,14 +628,14 @@
         LoadingMessage = "Refreshing data...";
         StateHasChanged();
 
-        // Show refresh animation using JavaScript
+       
         if (taskModule != null)
         {
             await taskModule.InvokeVoidAsync("showRefreshAnimation", "refreshBtn");
         }
         else
         {
-            // Fallback: just wait without animation
+            
             await Task.Delay(1000);
         }
 
@@ -629,7 +643,7 @@
         FilterTasks();
 
         IsLoading = false;
-        //await JSRuntime.InvokeVoidAsync("alert", "Data refreshed successfully!");
+       
     }
 
     private async Task ExportTasks()
@@ -638,16 +652,16 @@
         LoadingMessage = "Exporting tasks...";
         StateHasChanged();
 
-        // Use JavaScript module for export if available
+      
         if (taskModule != null)
         {
             await taskModule.InvokeVoidAsync("exportTasks");
         }
         else
         {
-            // Fallback export functionality
-            await Task.Delay(1000); // Simulate export process
-            // await JSRuntime.InvokeVoidAsync("alert", "Tasks exported successfully! CSV file downloaded.");
+            
+            await Task.Delay(1000); 
+           
         }
 
         IsLoading = false;
@@ -660,7 +674,6 @@
         {
             ViewTaskItem = task;
 
-            // Replace with your actual logic to get uploaded files/images for this task
             ViewTaskFiles = new List<FileItem>
         {
             new FileItem { FileName = "Report.pdf", Url = "/uploads/report.pdf", Type = "pdf" }
@@ -705,7 +718,7 @@
         public int Id { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
-        // Computed property for full name
+        
         public string Name => $"{FullName} {LastName}";
         public string Avatar { get; set; } = string.Empty;
     }
@@ -713,7 +726,7 @@
     {
         public string FileName { get; set; } = string.Empty;
         public string Url { get; set; } = string.Empty;
-        public string Type { get; set; } = ""; // "image" or "pdf"
+        public string Type { get; set; } = ""; 
     }
     // DTO class to match backend
     public class CreateTaskDto

@@ -1,5 +1,5 @@
 
-/* Main Container */
+
 .users-container {
     max-width: 100% !important;
     width: 100% !important;
@@ -7,7 +7,7 @@
     padding: 20px;
 }
 
-/* Page Header */
+
 .page-header {
     background: #a9ca4c;
     color: white;
@@ -263,7 +263,7 @@ tr:hover {
     color: #e74c3c;
 }
 
-/* Toggle Switch */
+
 .toggle-switch {
     position: relative;
     display: inline-block;
@@ -309,7 +309,7 @@ input:checked + .slider {
         transform: translateX(26px);
     }
 
-/* Modal */
+
 .modal {
     display: none;
     position: fixed;
@@ -356,7 +356,7 @@ input:checked + .slider {
     color: #7f8c8d;
 }
 
-/* Form */
+
 .form-group {
     margin-bottom: 20px;
 }

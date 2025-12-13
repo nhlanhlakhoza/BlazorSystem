@@ -256,6 +256,9 @@
 
     private void LoadSampleData()
     {
+        IsLoading = true;
+        LoadingMessage = "Loading Users...";
+        StateHasChanged();
         try
         {
             Users = Http.GetFromJsonAsync<List<User>>(
@@ -266,6 +269,8 @@
         {
             Console.WriteLine("Failed to load users: " + ex.Message);
         }
+        IsLoading = false;
+        StateHasChanged();
     }
 
     private void FilterUsers()
