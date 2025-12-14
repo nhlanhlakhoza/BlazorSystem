@@ -6,5 +6,27 @@ namespace Radzel_test.Components.Services
         public string UserEmail { get; set; } = "";
         public string UserRole { get; set; } = "";
         public string UserId { get; set; } = "";
+
+        public event Action? OnChange;
+
+        public void SetUser(string role, string name, string email)
+        {
+            UserRole = role;
+            UserName = name;
+            UserEmail = email;
+
+            NotifyStateChanged();
+        }
+
+        public void Clear()
+        {
+            UserRole = string.Empty;
+            UserName = string.Empty;
+            UserEmail = string.Empty;
+
+            NotifyStateChanged();
+        }
+
+        private void NotifyStateChanged() => OnChange?.Invoke();
     }
 }

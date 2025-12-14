@@ -18,19 +18,28 @@
                 <span class="bi bi-house-door fs-4  mb-4  icon-all" aria-hidden="true"></span> Dashboard
             </NavLink>
         </div>
-
+        @if (userRole == "Inspector")
+        {
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="tasks">
-                <span class="bi-list-check fs-4 me-2 icon-all" aria-hidden="true"></span>Tasks
+                <span class="bi-list-check fs-4 me-2 icon-all" aria-hidden="true"></span>My Tasks
             </NavLink>
         </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="users">
-                <span class="bi bi-people-fill fs-4 icon-all " style="position: relative; top: -13px;" aria-hidden="true"></span> Users
-            </NavLink>
-        </div>
-
+        }
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="tasks">
+                    <span class="bi-list-check fs-4 me-2 icon-all" aria-hidden="true"></span>Tasks
+                </NavLink>
+            </div>
+     
+        @if (userRole == "Manager")
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="users">
+                    <span class="bi bi-people-fill fs-4 icon-all " style="position: relative; top: -13px;" aria-hidden="true"></span> Users
+                </NavLink>
+            </div>
+        }
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="weather">
                 <span class="bi bi-gear-fill fs-4  icon-all " style="position: relative; top: -13px;" aria-hidden="true"></span> Settings
@@ -47,5 +56,24 @@
 </div>
 
 @code{
+    private string userRole = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        // Subscribe to state changes
+        UserStateService.OnChange += StateHasChanged;
+        userRole = UserStateService.UserRole;
+    }
+
+    public void Dispose()
+    {
+        UserStateService.OnChange -= StateHasChanged;
+    }
+
+    private void StateHasChanged()
+    {
+        userRole = UserStateService.UserRole;
+        InvokeAsync(base.StateHasChanged);
+    }
 
 }
