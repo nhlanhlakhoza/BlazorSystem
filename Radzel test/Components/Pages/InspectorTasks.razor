@@ -74,71 +74,99 @@
 
 @if (ShowModal)
 {
-    <div class="modal show">
+    <div class="modal-overlay">
         <div class="modal-content modal-lg">
+
             <div class="modal-header">
                 <h3>Complete Task</h3>
                 <button class="close-btn" @onclick="CloseModal">&times;</button>
             </div>
 
-            <EditForm Model="@CurrentTask" OnValidSubmit="@SaveTask">
+            <EditForm Model="@CurrentTask" OnValidSubmit="SaveTask">
                 <DataAnnotationsValidator />
 
                 <div class="form-group">
                     <label>Case Name</label>
-                    <InputText @bind-Value="@CurrentTask.CaseName" class="form-control" Disabled="true" />
+                    <InputText class="form-control"
+                               @bind-Value="CurrentTask.CaseName"
+                               disabled />
                 </div>
 
                 <div class="form-group">
                     <label>Location</label>
-                    <InputText @bind-Value="@CurrentTask.Location" class="form-control" Disabled="true" />
+                    <InputText class="form-control"
+                               @bind-Value="CurrentTask.Location"
+                               disabled />
                 </div>
 
                 <div class="form-group">
                     <label>Notes *</label>
-                    <InputTextArea @bind-Value="@CurrentTask.Notes" class="form-control" placeholder="Enter task notes..." />
+                    <InputTextArea class="form-control"
+                                   @bind-Value="CurrentTask.Notes"
+                                   placeholder="Enter task notes..." />
                 </div>
 
+                <!-- ?? IMAGES -->
                 <div class="form-group">
-                    <label>Upload Pictures</label>
-                    <InputFile OnChange="OnPictureSelected" multiple accept="image/*" />
-                    <div class="uploaded-images">
-                        @foreach (var img in CurrentTask.Pictures)
-                        {
-                            <div class="image-thumb">
-                                <img src="@img.DataUrl" />
-                                <button type="button" class="remove-image" @onclick="() => RemovePicture(img)">&times;</button>
-                            </div>
-                        }
-                    </div>
+                    <label>Upload Pictures (multiple)</label>
+
+                    <InputFile multiple
+                               accept="image/*"
+                               OnChange="OnPicturesSelected" />
+
+                    @if (CurrentTask.Pictures.Any())
+                    {
+                        <div class="uploaded-images">
+                            @foreach (var img in CurrentTask.Pictures)
+                            {
+                                <div class="image-thumb">
+                                    <img src="@img.DataUrl" />
+                                    <button type="button"
+                                            class="remove-image"
+                                            @onclick="() => RemovePicture(img)">
+                                        ×
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
 
+                <!-- ?? PDF -->
                 <div class="form-group">
-                    <label>Upload PDF (1 file)</label>
-                    <InputFile OnChange="OnPdfSelected" accept="application/pdf" />
+                    <label>Upload PDF (1 file only)</label>
+
+                    <InputFile accept="application/pdf"
+                               OnChange="OnPdfSelected" />
+
                     @if (!string.IsNullOrEmpty(CurrentTask.PdfName))
                     {
                         <div class="pdf-file">
-                            <i class="fas fa-file-pdf"></i> @CurrentTask.PdfName
+                            <i class="fas fa-file-pdf"></i>
+                            <span>@CurrentTask.PdfName</span>
+                            <button type="button"
+                                    class="remove-pdf"
+                                    @onclick="RemovePdf">
+                                Remove
+                            </button>
                         </div>
                     }
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save & Complete</button>
+                    <button type="button"
+                            class="btn btn-secondary"
+                            @onclick="CloseModal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary">
+                        Save & Complete
+                    </button>
                 </div>
             </EditForm>
 
-            <br />
-            @if (!string.IsNullOrEmpty(SuccessMessage))
-            {
-                <div class="alert alert-success text-center">@SuccessMessage</div>
-            }
-            @if (!string.IsNullOrEmpty(ErrorMessage))
-            {
-                <div class="alert alert-danger text-center">@ErrorMessage</div>
-            }
         </div>
     </div>
 }
@@ -153,56 +181,6 @@
     </div>
 }
 
-<style>
-    .uploaded-images {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 5px;
-    }
-
-    .image-thumb {
-        position: relative;
-    }
-
-        .image-thumb img {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 6px;
-            border: 2px solid #007bff;
-        }
-
-    .remove-image {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: #d9534f;
-        color: white;
-        border: none;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        cursor: pointer;
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .pdf-file {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        color: #d9534f;
-        font-weight: bold;
-        margin-top: 5px;
-    }
-
-        .pdf-file i {
-            font-size: 1.5rem;
-        }
-</style>
 
 @code {
     private List<InspectorTask> Tasks = new();
@@ -218,6 +196,51 @@
     private string ErrorMessage = "";
     private string SuccessMessage = "";
     private IEnumerable<InspectorTask> PagedTasks => FilteredTasks.Skip(pageIndex * pageSize).Take(pageSize);
+    private async Task OnPicturesSelected(InputFileChangeEventArgs e)
+{
+    long maxSize = 5 * 1024 * 1024; 
+
+    foreach (var file in e.GetMultipleFiles())
+    {
+        if (file.Size > maxSize)
+            continue;
+
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(maxSize).CopyToAsync(ms);
+
+        CurrentTask.Pictures.Add(new TaskImage
+        {
+            FileName = file.Name,
+            DataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}"
+        });
+    }
+}
+
+private async Task OnPdfSelected(InputFileChangeEventArgs e)
+{
+    var file = e.File;
+    if (file == null) return;
+
+    long maxSize = 10 * 1024 * 1024; 
+
+    using var ms = new MemoryStream();
+    await file.OpenReadStream(maxSize).CopyToAsync(ms);
+
+   
+    CurrentTask.PdfName = file.Name;
+    CurrentTask.PdfBytes = ms.ToArray();
+}
+
+private void RemovePicture(TaskImage img)
+{
+    CurrentTask.Pictures.Remove(img);
+}
+
+private void RemovePdf()
+{
+    CurrentTask.PdfName = string.Empty;
+    CurrentTask.PdfBytes = null;
+}
 
     private string SearchTerm
     {
@@ -275,19 +298,52 @@
             IsLoading = true;
             LoadingMessage = "Saving task...";
             StateHasChanged();
-            await Task.Delay(1000);
 
-            // Automatically mark completed if notes & PDF exist
-            if (!string.IsNullOrEmpty(CurrentTask.Notes) && !string.IsNullOrEmpty(CurrentTask.PdfName))
-                CurrentTask.Status = "Completed";
+            using var content = new MultipartFormDataContent();
 
-            var index = Tasks.FindIndex(t => t.Id == CurrentTask.Id);
-            if (index >= 0) Tasks[index] = CurrentTask;
+            // Add Notes
+            if (!string.IsNullOrEmpty(CurrentTask.Notes))
+                content.Add(new StringContent(CurrentTask.Notes), "Notes");
 
-            FilterTasks();
-            SuccessMessage = "Task updated successfully!";
-            await Task.Delay(1500);
-            CloseModal();
+           
+            if (!string.IsNullOrEmpty(CurrentTask.PdfName) && CurrentTask.PdfBytes != null)
+            {
+                var pdfContent = new ByteArrayContent(CurrentTask.PdfBytes);
+                pdfContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+                content.Add(pdfContent, "PdfFile", CurrentTask.PdfName);
+            }
+
+          
+            foreach (var img in CurrentTask.Pictures)
+            {
+                var bytes = Convert.FromBase64String(img.DataUrl.Split(',')[1]);
+                var imgContent = new ByteArrayContent(bytes);
+                imgContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png"); // or image/jpeg
+                content.Add(imgContent, "Images", img.FileName);
+            }
+
+           
+            var response = await Http.PutAsync($"https://localhost:7272/api/tasks/inspector/{CurrentTask.Id}", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+               
+                if (!string.IsNullOrEmpty(CurrentTask.Notes) && !string.IsNullOrEmpty(CurrentTask.PdfName))
+                    CurrentTask.Status = "Completed";
+
+               
+                var index = Tasks.FindIndex(t => t.Id == CurrentTask.Id);
+                if (index >= 0) Tasks[index] = CurrentTask;
+
+                FilterTasks();
+                SuccessMessage = "Task updated successfully!";
+                await Task.Delay(1500);
+                CloseModal();
+            }
+            else
+            {
+                ErrorMessage = $"Failed to save task. Status code: {response.StatusCode}";
+            }
         }
         catch (Exception ex)
         {
@@ -313,7 +369,7 @@
 
     private async Task OnPictureSelected(InputFileChangeEventArgs e)
     {
-        long maxFileSize = 50 * 1024 * 1024; // 50 MB
+        long maxFileSize = 50 * 1024 * 1024;
 
         foreach (var file in e.GetMultipleFiles())
         {
@@ -331,26 +387,22 @@
     }
 
 
-    private void RemovePicture(TaskImage img)
-    {
-        CurrentTask.Pictures.Remove(img);
-    }
-
-    private void OnPdfSelected(InputFileChangeEventArgs e)
-    {
-        var file = e.File;
-        CurrentTask.PdfName = file.Name;
-    }
+   
+   
 
     public class InspectorTask
     {
         public int Id { get; set; }
         public string CaseName { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
-        public string Status { get; set; } = "Pending";
         public string Notes { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+      
         public string PdfName { get; set; } = string.Empty;
-        public List<TaskImage> Pictures { get; set; } = new List<TaskImage>();
+        public byte[]? PdfBytes { get; set; }
+
+       
+        public List<TaskImage> Pictures { get; set; } = new();
     }
 
     public class TaskImage
@@ -358,4 +410,5 @@
         public string FileName { get; set; } = "";
         public string DataUrl { get; set; } = "";
     }
+
 }
