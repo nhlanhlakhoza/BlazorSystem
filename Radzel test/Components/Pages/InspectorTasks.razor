@@ -2,9 +2,12 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
+@using Radzel_test.Components.Services
 @using Radzen
-
+@inject UserStateService UserStateService
 @rendermode InteractiveServer
+@inject HttpClient Http
+
 <PageTitle>Inspector - Tasks Management</PageTitle>
 
 <div class="users-container">
@@ -46,7 +49,7 @@
                 @foreach (var task in PagedTasks)
                 {
                     <tr>
-                        <td>@task.CaseName</td>
+                        <td>@task.Title</td>
                         <td>@task.Location</td>
                         <td>
                             <span class="status-badge status-@task.Status">@task.Status</span>
@@ -88,7 +91,7 @@
                 <div class="form-group">
                     <label>Case Name</label>
                     <InputText class="form-control"
-                               @bind-Value="CurrentTask.CaseName"
+                               @bind-Value="CurrentTask.Title"
                                disabled />
                 </div>
 
@@ -254,22 +257,54 @@ private void RemovePdf()
         FilterTasks();
     }
 
-    private void LoadSampleData()
+    private async Task LoadSampleData()
     {
-        Tasks = new List<InspectorTask>
+        try
         {
-            new InspectorTask { Id=1, CaseName="Safety Inspection", Location="Building A", Status="Pending" },
-            new InspectorTask { Id=2, CaseName="Electrical Check", Location="Facility 1", Status="Pending" },
-            new InspectorTask { Id=3, CaseName="Fire Audit", Location="Building B", Status="Pending" },
-            new InspectorTask { Id=4, CaseName="Structural Review", Location="Building C", Status="Pending" }
-        };
+            IsLoading = true;
+            LoadingMessage = "Loading tasks...";
+            StateHasChanged();
+
+            // Current inspector id (string)
+            var currentInspectorId = UserStateService.UserId;
+
+            // Get all tasks
+            var allTasks = await Http.GetFromJsonAsync<List<InspectorTask>>("https://localhost:7272/api/tasks/all");
+
+            if (allTasks != null)
+            {
+                // Filter by AgentId and pending status
+                Tasks = allTasks
+                    .Where(t => t.AgentId == currentInspectorId &&
+                                t.Status?.Trim().ToLower() == "pending")
+                    .ToList();
+
+                // If you have a search term, filter it too
+                FilterTasks();
+
+                // Force UI update
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "Failed to load tasks: " + ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
     }
+
+
+
 
     private void FilterTasks()
     {
         FilteredTasks = Tasks.Where(t => t.Status == "Pending" &&
                                          (string.IsNullOrEmpty(SearchTerm) ||
-                                          t.CaseName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                          t.Title.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
                                           t.Location.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)))
                              .ToList();
     }
@@ -301,7 +336,7 @@ private void RemovePdf()
 
             using var content = new MultipartFormDataContent();
 
-            // Add Notes
+          
             if (!string.IsNullOrEmpty(CurrentTask.Notes))
                 content.Add(new StringContent(CurrentTask.Notes), "Notes");
 
@@ -318,7 +353,7 @@ private void RemovePdf()
             {
                 var bytes = Convert.FromBase64String(img.DataUrl.Split(',')[1]);
                 var imgContent = new ByteArrayContent(bytes);
-                imgContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png"); // or image/jpeg
+                imgContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png"); 
                 content.Add(imgContent, "Images", img.FileName);
             }
 
@@ -393,11 +428,11 @@ private void RemovePdf()
     public class InspectorTask
     {
         public int Id { get; set; }
-        public string CaseName { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
         public string Location { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
-      
+        public string AgentId { get; set; } = string.Empty;
         public string PdfName { get; set; } = string.Empty;
         public byte[]? PdfBytes { get; set; }
 
