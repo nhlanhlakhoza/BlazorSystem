@@ -39,8 +39,8 @@
         <table>
             <thead>
                 <tr>
-                    <th>Case Name</th>
-                    <th>Location</th>
+                    <th>Task Name</th>
+                    <th> Description</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -50,7 +50,7 @@
                 {
                     <tr>
                         <td>@task.Title</td>
-                        <td>@task.Location</td>
+                        <td>@task.Description</td>
                         <td>
                             <span class="status-badge status-@task.Status">@task.Status</span>
                         </td>
@@ -98,7 +98,7 @@
                 <div class="form-group">
                     <label>Location</label>
                     <InputText class="form-control"
-                               @bind-Value="CurrentTask.Location"
+                               @bind-Value="CurrentTask.Description"
                                disabled />
                 </div>
 
@@ -127,7 +127,7 @@
                                     <button type="button"
                                             class="remove-image"
                                             @onclick="() => RemovePicture(img)">
-                                        ×
+                                        Ã—
                                     </button>
                                 </div>
                             }
@@ -200,50 +200,50 @@
     private string SuccessMessage = "";
     private IEnumerable<InspectorTask> PagedTasks => FilteredTasks.Skip(pageIndex * pageSize).Take(pageSize);
     private async Task OnPicturesSelected(InputFileChangeEventArgs e)
-{
-    long maxSize = 5 * 1024 * 1024; 
-
-    foreach (var file in e.GetMultipleFiles())
     {
-        if (file.Size > maxSize)
-            continue;
+        long maxSize = 5 * 1024 * 1024; 
 
-        using var ms = new MemoryStream();
-        await file.OpenReadStream(maxSize).CopyToAsync(ms);
+        foreach (var file in e.GetMultipleFiles())
+        {
+            if (file.Size > maxSize)
+                continue;
 
-        CurrentTask.Pictures.Add(new TaskImage
+            using var ms = new MemoryStream();
+            await file.OpenReadStream(maxSize).CopyToAsync(ms);
+
+            CurrentTask.Pictures.Add(new TaskImage
         {
             FileName = file.Name,
             DataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}"
         });
+        }
     }
-}
 
-private async Task OnPdfSelected(InputFileChangeEventArgs e)
-{
-    var file = e.File;
-    if (file == null) return;
+    private async Task OnPdfSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
 
-    long maxSize = 10 * 1024 * 1024; 
+        long maxSize = 10 * 1024 * 1024; 
 
-    using var ms = new MemoryStream();
-    await file.OpenReadStream(maxSize).CopyToAsync(ms);
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(maxSize).CopyToAsync(ms);
 
-   
-    CurrentTask.PdfName = file.Name;
-    CurrentTask.PdfBytes = ms.ToArray();
-}
 
-private void RemovePicture(TaskImage img)
-{
-    CurrentTask.Pictures.Remove(img);
-}
+        CurrentTask.PdfName = file.Name;
+        CurrentTask.PdfBytes = ms.ToArray();
+    }
 
-private void RemovePdf()
-{
-    CurrentTask.PdfName = string.Empty;
-    CurrentTask.PdfBytes = null;
-}
+    private void RemovePicture(TaskImage img)
+    {
+        CurrentTask.Pictures.Remove(img);
+    }
+
+    private void RemovePdf()
+    {
+        CurrentTask.PdfName = string.Empty;
+        CurrentTask.PdfBytes = null;
+    }
 
     private string SearchTerm
     {
@@ -302,7 +302,7 @@ private void RemovePdf()
 
     private void FilterTasks()
     {
-        FilteredTasks = Tasks.Where(t => t.Status == "Pending" &&
+        FilteredTasks = Tasks.Where(t => t.Status == "pending" &&
                                          (string.IsNullOrEmpty(SearchTerm) ||
                                           t.Title.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
                                           t.Location.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)))
@@ -336,11 +336,11 @@ private void RemovePdf()
 
             using var content = new MultipartFormDataContent();
 
-          
+
             if (!string.IsNullOrEmpty(CurrentTask.Notes))
                 content.Add(new StringContent(CurrentTask.Notes), "Notes");
 
-           
+
             if (!string.IsNullOrEmpty(CurrentTask.PdfName) && CurrentTask.PdfBytes != null)
             {
                 var pdfContent = new ByteArrayContent(CurrentTask.PdfBytes);
@@ -348,7 +348,7 @@ private void RemovePdf()
                 content.Add(pdfContent, "PdfFile", CurrentTask.PdfName);
             }
 
-          
+
             foreach (var img in CurrentTask.Pictures)
             {
                 var bytes = Convert.FromBase64String(img.DataUrl.Split(',')[1]);
@@ -357,16 +357,16 @@ private void RemovePdf()
                 content.Add(imgContent, "Images", img.FileName);
             }
 
-           
-            var response = await Http.PutAsync($"https://localhost:7272/api/tasks/inspector/{CurrentTask.Id}", content);
+
+            var response = await Http.PutAsync($"https://localhost:7272/api/tasks/inspector-update/{CurrentTask.Id}", content);
 
             if (response.IsSuccessStatusCode)
             {
-               
+
                 if (!string.IsNullOrEmpty(CurrentTask.Notes) && !string.IsNullOrEmpty(CurrentTask.PdfName))
                     CurrentTask.Status = "Completed";
 
-               
+
                 var index = Tasks.FindIndex(t => t.Id == CurrentTask.Id);
                 if (index >= 0) Tasks[index] = CurrentTask;
 
@@ -422,8 +422,8 @@ private void RemovePdf()
     }
 
 
-   
-   
+
+
 
     public class InspectorTask
     {
@@ -435,8 +435,8 @@ private void RemovePdf()
         public string AgentId { get; set; } = string.Empty;
         public string PdfName { get; set; } = string.Empty;
         public byte[]? PdfBytes { get; set; }
+        public string Description { get; set; }= string.Empty;
 
-       
         public List<TaskImage> Pictures { get; set; } = new();
     }
 
