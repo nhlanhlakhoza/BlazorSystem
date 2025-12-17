@@ -909,3 +909,7 @@ textarea.form-control {
     .modal-footer .btn {
         min-width: 100px;
     }
+.approve {
+    background: #a9ca4c;
+    color:white;
+}
