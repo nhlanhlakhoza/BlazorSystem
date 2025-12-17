@@ -1,6 +1,7 @@
 using Blazored.LocalStorage;
 using Blazored.SessionStorage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Radzel_test.Components;
 using Radzel_test.Components.Services;
@@ -48,6 +49,22 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<UserStateService>();
 var app = builder.Build();
+// IMAGES
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        @"C:\Users\nhlan\Desktop\MpactStorage\TaskImages"),
+    RequestPath = "/TaskImages"
+});
+
+// PDF DOCUMENTS
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        @"C:\Users\nhlan\Desktop\MpactStorage\TaskPDFs"),
+    RequestPath = "/TaskPDFs"
+});
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

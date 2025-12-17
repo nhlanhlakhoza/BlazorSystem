@@ -111,7 +111,7 @@
                                 <button class="icon-btn delete-btn" @onclick="() => DeleteTask(task.Id)">
                                     <i class="fas fa-trash"></i>
                                 </button>
-                                @if (task.Status == "completed")
+                                @if (task.Status == "submitted")
                                 {
                                     <button class="icon-btn view-btn" @onclick="() => ViewTask(task.Id)">
                                         <i class="fas fa-eye"></i>
@@ -135,15 +135,19 @@
 {
     <div class="modal show">
         <div class="modal-content view-modal">
+           
             <div class="modal-header">
                 <h3>Task Details</h3>
                 <button class="close-btn" @onclick="CloseViewModal">&times;</button>
             </div>
 
+          
             <div class="modal-body">
-                <div class="task-info-section">
-                    <p><strong>Title:</strong> @ViewTaskItem.Title</p>
+              
+                <div class="task-info-card">
+                    <h4>@ViewTaskItem.Title</h4>
                     <p><strong>Description:</strong> @ViewTaskItem.Description</p>
+                    <p><strong>Inspector's Notes:</strong> @ViewTaskItem.InspectorNotes</p>
                     <p><strong>Assigned Agent:</strong> @Agents.FirstOrDefault(a => a.Id == ViewTaskItem.AgentId)?.Name</p>
                     <p><strong>Due Date:</strong> @FormatDate(ViewTaskItem.DueDate)</p>
                     <p><strong>Priority:</strong> @ViewTaskItem.Priority</p>
@@ -151,36 +155,38 @@
 
                 <hr />
 
-                <!-- Tabs for PDFs and Images -->
+               
                 <div class="tabs">
                     <button class="tab-button @(ActiveTab == "pdf" ? "active" : "")"
                             @onclick='() => SwitchTab("pdf")'>
-                        Uploaded PDFs (@ViewTaskFiles.Count)
+                        PDFs (@ViewTaskFiles.Count)
                     </button>
                     <button class="tab-button @(ActiveTab == "images" ? "active" : "")"
                             @onclick='() => SwitchTab("images")'>
-                        Uploaded Pictures (@ViewTaskImages.Count)
+                        Pictures (@ViewTaskImages.Count)
                     </button>
                 </div>
 
-
-
+               
                 <div class="tab-content">
                     @if (ActiveTab == "pdf")
                     {
                         @if (ViewTaskFiles.Any())
                         {
-                            @foreach (var file in ViewTaskFiles)
-                            {
-                                <div class="pdf-preview">
-                                    <p>@file.FileName</p>
-                                    <iframe src="@file.Url" width="100%" height="400px"></iframe>
-                                </div>
-                            }
+                            <div class="pdf-list">
+                                @foreach (var file in ViewTaskFiles)
+                                {
+                                    <div class="pdf-card">
+                                        <i class="fas fa-file-pdf pdf-icon"></i>
+                                        <span>@file.FileName</span>
+                                        <iframe src="@file.Url" width="100%" height="300px"></iframe>
+                                    </div>
+                                }
+                            </div>
                         }
                         else
                         {
-                            <p>No PDFs uploaded.</p>
+                            <p class="empty-state">No PDFs uploaded.</p>
                         }
                     }
                     else if (ActiveTab == "images")
@@ -190,18 +196,22 @@
                             <div class="image-gallery">
                                 @foreach (var img in ViewTaskImages)
                                 {
-                                    <img src="@img.Url" alt="@img.FileName" class="uploaded-image" />
+                                    <div class="image-card" @onclick="() => OpenImagePreview(img)">
+                                        <img src="@img.Url" alt="@img.FileName" />
+                                        <span class="image-name">@img.FileName</span>
+                                    </div>
                                 }
                             </div>
                         }
                         else
                         {
-                            <p>No images uploaded.</p>
+                            <p class="empty-state">No images uploaded.</p>
                         }
                     }
                 </div>
             </div>
 
+           
             <div class="modal-footer">
                 <button class="btn btn-secondary" @onclick="CloseViewModal">Close</button>
             </div>
@@ -209,6 +219,21 @@
     </div>
 }
 
+
+@if (ShowImagePreview)
+{
+    <div class="image-preview-overlay" @onclick="CloseImagePreview">
+        <div class="image-preview-container" @onclick:stopPropagation="true">
+            <button class="image-preview-close" @onclick="CloseImagePreview">&times;</button>
+
+            <img src="@SelectedImage.Url" alt="@SelectedImage.FileName" />
+
+            <div class="image-preview-footer">
+                <span>@SelectedImage.FileName</span>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- Add/Edit Task Modal -->
 @if (ShowModal)
@@ -317,6 +342,8 @@
     private int pageIndex = 0;
     private int count => FilteredTasks.Count;
 
+    private bool ShowImagePreview = false;
+    private FileItem? SelectedImage;
     private IEnumerable<TaskItem> PagedTasks =>
         FilteredTasks.Skip(pageIndex * pageSize).Take(pageSize);
 
@@ -377,7 +404,7 @@
         LoadSampleData();
         FilterTasks();
 
-        // Load the JavaScript module
+     
         try
         {
             taskModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Pages/TaskManagement.razor.js");
@@ -531,9 +558,9 @@
 
         try
         {
-            await Task.Delay(500); //
+            await Task.Delay(500); 
 
-            // Create DTO to send to API
+           
             var dto = new CreateTaskDto
             {
                 Title = CurrentTask.Title,
@@ -592,7 +619,17 @@
     }
 
   
+    private void OpenImagePreview(FileItem image)
+{
+    SelectedImage = image;
+    ShowImagePreview = true;
+}
 
+private void CloseImagePreview()
+{
+    ShowImagePreview = false;
+    SelectedImage = null;
+}
     
 
 
@@ -667,26 +704,79 @@
         IsLoading = false;
     }
 
-    private void ViewTask(int taskId)
+  private void ViewTask(int taskId)
+{
+    
+    var task = Tasks.FirstOrDefault(t => t.Id == taskId);
+    if (task == null)
+        return;
+
+    ViewTaskItem = task;
+    ViewTaskImages = new List<FileItem>();
+    ViewTaskFiles = new List<FileItem>();
+
+    string imagesPath = @"C:\Users\nhlan\Desktop\MpactStorage\TaskImages";
+    string pdfsPath   = @"C:\Users\nhlan\Desktop\MpactStorage\TaskPDFs";
+
+    
+    if (Directory.Exists(imagesPath))
     {
-        var task = Tasks.FirstOrDefault(t => t.Id == taskId);
-        if (task != null)
-        {
-            ViewTaskItem = task;
+        
+        var imageFiles = Directory.GetFiles(imagesPath)
+            .Where(f => Path.GetFileNameWithoutExtension(f)
+                .Contains($"_task{taskId}", StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
-            ViewTaskFiles = new List<FileItem>
+        foreach (var filePath in imageFiles)
         {
-            new FileItem { FileName = "Report.pdf", Url = "/uploads/report.pdf", Type = "pdf" }
-        };
-            ViewTaskImages = new List<FileItem>
-        {
-            new FileItem { FileName = "Photo1.jpg", Url = "/uploads/photo1.jpg", Type = "image" },
-            new FileItem { FileName = "Photo2.jpg", Url = "/uploads/photo2.jpg", Type = "image" }
-        };
+           
+            var storedFileName = Path.GetFileName(filePath);
 
-            ShowViewModal = true;
+            var displayName = storedFileName
+                .Replace($"_task{taskId}", "")
+                .Trim('_');
+
+            ViewTaskImages.Add(new FileItem
+            {
+                FileName = displayName,
+                Url = $"/TaskImages/{storedFileName}", 
+                Type = "image"
+            });
         }
     }
+
+    
+    if (Directory.Exists(pdfsPath))
+    {
+        
+        var pdfFiles = Directory.GetFiles(pdfsPath)
+            .Where(f => Path.GetFileNameWithoutExtension(f)
+                .Contains($"_task{taskId}", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var filePath in pdfFiles)
+        {
+            var storedFileName = Path.GetFileName(filePath);
+
+            var displayName = storedFileName
+                .Replace($"_task{taskId}", "")
+                .Trim('_');
+
+            ViewTaskFiles.Add(new FileItem
+            {
+                FileName = displayName,
+                Url = $"/TaskPDFs/{storedFileName}", 
+                Type = "pdf"
+            });
+        }
+    }
+
+    
+    ShowViewModal = true;
+}
+
+
+
 
     private void CloseViewModal()
     {
@@ -711,6 +801,7 @@
         public string Status { get; set; } = "pending";
         public DateTime CreatedAt { get; set; }
         public int AssignedBy { get; set; }
+        public string InspectorNotes { get; set; }
     }
 
     public class Agent
