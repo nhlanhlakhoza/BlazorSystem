@@ -135,7 +135,7 @@
 {
     <div class="modal show">
         <div class="modal-content view-modal">
-           
+          
             <div class="modal-header">
                 <h3>Task Details</h3>
                 <button class="close-btn" @onclick="CloseViewModal">&times;</button>
@@ -143,7 +143,7 @@
 
           
             <div class="modal-body">
-              
+               
                 <div class="task-info-card">
                     <h4>@ViewTaskItem.Title</h4>
                     <p><strong>Description:</strong> @ViewTaskItem.Description</p>
@@ -167,7 +167,6 @@
                     </button>
                 </div>
 
-               
                 <div class="tab-content">
                     @if (ActiveTab == "pdf")
                     {
@@ -209,18 +208,45 @@
                         }
                     }
                 </div>
+
+              
+                @if (ShowApprovalForm && ApprovalModels != null)
+                {
+                    <hr />
+                    <EditForm Model="@ApprovalModels" OnValidSubmit="@SubmitApproval">
+                        <DataAnnotationsValidator />
+
+                        <div class="form-group">
+                            <label>Comments *</label>
+                            <InputTextArea @bind-Value="ApprovalModels.Comments" class="form-control" required />
+                        </div>
+
+                        @if (ApprovalModels.IsApproved)
+                        {
+                            <div class="form-group">
+                                <label>External Recipients</label>
+                                <InputText @bind-Value="ApprovalModels.ExternalRecipients" class="form-control" placeholder="Enter email(s)" />
+                            </div>
+                        }
+
+                        <div class="form-actions mt-2">
+                            <button type="submit" class="btn btn-primary me-2">Submit</button>
+                            <button type="button" class="btn btn-secondary" @onclick="CancelApprovalForm">Cancel</button>
+                        </div>
+                    </EditForm>
+                }
             </div>
 
-           
-            <div class="modal-footer">
-              
-                <button class="btn btn-secondar approve"  @onclick="CloseViewModal">Approve</button>
-                <button class="btn btn-danger" @onclick="CloseViewModal">Reject</button>
-                  <button class="btn btn-secondary" @onclick="CloseViewModal">Close</button>
+         
+            <div class="modal-footer" style="display:@(ShowApprovalForm ? "none" : "flex")">
+                <button class="btn btn-success approve" @onclick="() => OpenApprovalForm(true)">Approve</button>
+                <button class="btn btn-danger" @onclick="() => OpenApprovalForm(false)">Reject</button>
+                <button class="btn btn-secondary" @onclick="CloseViewModal">Close</button>
             </div>
         </div>
     </div>
 }
+
 
 
 @if (ShowImagePreview)
@@ -340,6 +366,8 @@
     private List<FileItem> ViewTaskImages = new();
     private string ErrorMessage = "";
     private string SuccessMessage = "";
+    private ApprovalModel ApprovalModels = new();
+    private bool ShowApprovalForm = false;
 
     private int pageSize = 4;
     private int pageIndex = 0;
@@ -400,14 +428,14 @@
     {
         ActiveTab = tab;
     }
-   
+
 
     protected override async Task OnInitializedAsync()
     {
         LoadSampleData();
         FilterTasks();
 
-     
+
         try
         {
             taskModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./Pages/TaskManagement.razor.js");
@@ -425,11 +453,11 @@
         StateHasChanged(); 
         try
         {
-            
+
             Agents = new List<Agent>();
             Tasks = new List<TaskItem>();
 
-           
+
             var inspectors = await Http.GetFromJsonAsync<List<Agent>>("https://localhost:7272/api/users/inspectors");
             if (inspectors != null)
             {
@@ -442,7 +470,7 @@
                 }).ToList();
             }
 
-            
+
             var tasksFromApi = await Http.GetFromJsonAsync<List<TaskItem>>("https://localhost:7272/api/Tasks/all");
             if (tasksFromApi != null)
             {
@@ -563,7 +591,7 @@
         {
             await Task.Delay(500); 
 
-           
+
             var dto = new CreateTaskDto
             {
                 Title = CurrentTask.Title,
@@ -574,7 +602,7 @@
                 DueDate = CurrentTask.DueDate
             };
 
-           
+
             var response = await Http.PostAsJsonAsync("https://localhost:7272/api/Tasks/add", dto);
 
             if (response.IsSuccessStatusCode)
@@ -583,7 +611,7 @@
 
                 if (savedTask != null)
                 {
-                   
+
                     if (EditingTask)
                     {
                         var index = Tasks.FindIndex(t => t.Id == CurrentTask.Id);
@@ -596,7 +624,7 @@
                     }
 
                     FilterTasks();
-                    
+
                 }
             }
             else
@@ -613,7 +641,7 @@
         {
             IsLoading = false;
             SuccessMessage = "Task Created successfully!";
-          
+
             StateHasChanged();
             await Task.Delay(3000);
 
@@ -621,19 +649,19 @@
         }
     }
 
-  
-    private void OpenImagePreview(FileItem image)
-{
-    SelectedImage = image;
-    ShowImagePreview = true;
-}
 
-private void CloseImagePreview()
-{
-    ShowImagePreview = false;
-    SelectedImage = null;
-}
-    
+    private void OpenImagePreview(FileItem image)
+    {
+        SelectedImage = image;
+        ShowImagePreview = true;
+    }
+
+    private void CloseImagePreview()
+    {
+        ShowImagePreview = false;
+        SelectedImage = null;
+    }
+
 
 
 
@@ -668,14 +696,14 @@ private void CloseImagePreview()
         LoadingMessage = "Refreshing data...";
         StateHasChanged();
 
-       
+
         if (taskModule != null)
         {
             await taskModule.InvokeVoidAsync("showRefreshAnimation", "refreshBtn");
         }
         else
         {
-            
+
             await Task.Delay(1000);
         }
 
@@ -683,7 +711,7 @@ private void CloseImagePreview()
         FilterTasks();
 
         IsLoading = false;
-       
+
     }
 
     private async Task ExportTasks()
@@ -692,91 +720,91 @@ private void CloseImagePreview()
         LoadingMessage = "Exporting tasks...";
         StateHasChanged();
 
-      
+
         if (taskModule != null)
         {
             await taskModule.InvokeVoidAsync("exportTasks");
         }
         else
         {
-            
+
             await Task.Delay(1000); 
-           
+
         }
 
         IsLoading = false;
     }
 
-  private void ViewTask(int taskId)
-{
-    
-    var task = Tasks.FirstOrDefault(t => t.Id == taskId);
-    if (task == null)
-        return;
-
-    ViewTaskItem = task;
-    ViewTaskImages = new List<FileItem>();
-    ViewTaskFiles = new List<FileItem>();
-
-    string imagesPath = @"C:\Users\nhlan\Desktop\MpactStorage\TaskImages";
-    string pdfsPath   = @"C:\Users\nhlan\Desktop\MpactStorage\TaskPDFs";
-
-    
-    if (Directory.Exists(imagesPath))
+    private void ViewTask(int taskId)
     {
-        
-        var imageFiles = Directory.GetFiles(imagesPath)
-            .Where(f => Path.GetFileNameWithoutExtension(f)
-                .Contains($"_task{taskId}", StringComparison.OrdinalIgnoreCase))
-            .ToList();
 
-        foreach (var filePath in imageFiles)
+        var task = Tasks.FirstOrDefault(t => t.Id == taskId);
+        if (task == null)
+            return;
+
+        ViewTaskItem = task;
+        ViewTaskImages = new List<FileItem>();
+        ViewTaskFiles = new List<FileItem>();
+
+        string imagesPath = @"C:\Users\nhlan\Desktop\MpactStorage\TaskImages";
+        string pdfsPath   = @"C:\Users\nhlan\Desktop\MpactStorage\TaskPDFs";
+
+
+        if (Directory.Exists(imagesPath))
         {
-           
-            var storedFileName = Path.GetFileName(filePath);
 
-            var displayName = storedFileName
-                .Replace($"_task{taskId}", "")
-                .Trim('_');
+            var imageFiles = Directory.GetFiles(imagesPath)
+                .Where(f => Path.GetFileNameWithoutExtension(f)
+                    .Contains($"_task{taskId}", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-            ViewTaskImages.Add(new FileItem
+            foreach (var filePath in imageFiles)
+            {
+
+                var storedFileName = Path.GetFileName(filePath);
+
+                var displayName = storedFileName
+                    .Replace($"_task{taskId}", "")
+                    .Trim('_');
+
+                ViewTaskImages.Add(new FileItem
             {
                 FileName = displayName,
                 Url = $"/TaskImages/{storedFileName}", 
                 Type = "image"
             });
+            }
         }
-    }
 
-    
-    if (Directory.Exists(pdfsPath))
-    {
-        
-        var pdfFiles = Directory.GetFiles(pdfsPath)
-            .Where(f => Path.GetFileNameWithoutExtension(f)
-                .Contains($"_task{taskId}", StringComparison.OrdinalIgnoreCase))
-            .ToList();
 
-        foreach (var filePath in pdfFiles)
+        if (Directory.Exists(pdfsPath))
         {
-            var storedFileName = Path.GetFileName(filePath);
 
-            var displayName = storedFileName
-                .Replace($"_task{taskId}", "")
-                .Trim('_');
+            var pdfFiles = Directory.GetFiles(pdfsPath)
+                .Where(f => Path.GetFileNameWithoutExtension(f)
+                    .Contains($"_task{taskId}", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-            ViewTaskFiles.Add(new FileItem
+            foreach (var filePath in pdfFiles)
+            {
+                var storedFileName = Path.GetFileName(filePath);
+
+                var displayName = storedFileName
+                    .Replace($"_task{taskId}", "")
+                    .Trim('_');
+
+                ViewTaskFiles.Add(new FileItem
             {
                 FileName = displayName,
                 Url = $"/TaskPDFs/{storedFileName}", 
                 Type = "pdf"
             });
+            }
         }
-    }
 
-    
-    ShowViewModal = true;
-}
+
+        ShowViewModal = true;
+    }
 
 
 
@@ -791,8 +819,81 @@ private void CloseImagePreview()
 
 
 
+    private void OpenApprovalForm(bool isApproved)
+    {
+        ApprovalModels = new ApprovalModel
+        {
+            IsApproved = isApproved,
+            Comments = string.Empty,
+            ExternalRecipients = string.Empty
+        };
+        ShowApprovalForm = true;
+    }
 
-    // Model Classes
+    private void CancelApprovalForm()
+    {
+        ShowApprovalForm = false;
+        ApprovalModels = new ApprovalModel();
+    }
+
+    private async Task SubmitApproval()
+    {
+        try
+        {
+            IsLoading = true;
+            LoadingMessage = "Saving ...";
+            ErrorMessage = "";
+            SuccessMessage = "";
+
+            if (ViewTaskItem == null)
+                return;
+
+            var url = $"https://localhost:7272/api/Tasks/manager-review/{ViewTaskItem.Id}";
+
+            var response = await Http.PutAsJsonAsync(url, ApprovalModels);
+
+            if (response.IsSuccessStatusCode)
+            {
+                SuccessMessage = "Approval status saved successfully!";
+                ShowApprovalForm = false;
+
+              
+                await LoadSampleData(); 
+                CloseViewModal();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                ErrorMessage = string.IsNullOrWhiteSpace(error)
+                    ? "Failed to save approval status."
+                    : $"API Error: {error}";
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            ErrorMessage = $"Network error: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Unexpected error: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+
+    public class ApprovalModel
+    {
+        public bool IsApproved { get; set; }
+        public string Comments { get; set; } = string.Empty;
+        public string? ExternalRecipients { get; set; }
+    }
+
+
+
     public class TaskItem
     {
         public int Id { get; set; }
@@ -822,7 +923,7 @@ private void CloseImagePreview()
         public string Url { get; set; } = string.Empty;
         public string Type { get; set; } = ""; 
     }
-    // DTO class to match backend
+    
     public class CreateTaskDto
     {
         public string Title { get; set; } = string.Empty;
