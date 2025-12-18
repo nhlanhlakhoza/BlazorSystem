@@ -378,7 +378,10 @@
     private IEnumerable<TaskItem> PagedTasks =>
         FilteredTasks.Skip(pageIndex * pageSize).Take(pageSize);
 
-
+    private int PendingCount;
+    private int CompletedCount;
+    private int SubmittedCount;
+    private int OverdueCount;
     void PageChanged(Radzen.PagerEventArgs args)
     {
         pageIndex = args.PageIndex;

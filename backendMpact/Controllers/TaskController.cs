@@ -1,4 +1,4 @@
-﻿using backendMpact.Data;
+using backendMpact.Data;
 using backendMpact.DTO;
 using backendMpact.Models;
 using backendMpact.Services;
@@ -130,7 +130,7 @@ public class TasksController : ControllerBase
         if (dto.IsApproved)
         {
             task.IsApproved = true;
-            task.Status = "approved";
+            task.Status = "completed";
             task.ExternalRecipients = dto.ExternalRecipients;
 
             // Build attachment list: PDF + images
