@@ -9,9 +9,9 @@ namespace Radzel_test.Components.Services
 
         public event Action? OnChange;
 
-        public void SetUser(string role, string name, string email)
+        public void SetUser(string Role, string name, string email)
         {
-            UserRole = role;
+            UserRole = Role;
             UserName = name;
             UserEmail = email;
 

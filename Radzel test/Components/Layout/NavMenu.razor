@@ -1,5 +1,12 @@
-﻿@using Radzel_test.Components.Services
+@using Radzel_test.Components.Services
 @inject UserStateService UserStateService
+@inject IJSRuntime JS
+@using Radzen
+@using System.IdentityModel.Tokens.Jwt
+@inject UserStateService UserStateService
+@rendermode InteractiveServer
+@using System.IdentityModel.Tokens.Jwt
+
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -13,64 +20,95 @@
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
+         @if(UserRole=="manager"){
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="dashboard" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door fs-4  mb-4  icon-all" aria-hidden="true"></span> Dashboard
             </NavLink>
         </div>
-       
+         }
+       @if(UserRole=="inspector"){
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="inspector">
                 <span class="bi-list-check fs-4 me-2 icon-all" aria-hidden="true"></span>My Tasks
             </NavLink>
         </div>
-        
+       }
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="tasks">
                     <span class="bi-list-check fs-4 me-2 icon-all" aria-hidden="true"></span>Tasks
                 </NavLink>
             </div>
-     
+       @if(UserRole=="manager"){
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="users">
                     <span class="bi bi-people-fill fs-4 icon-all " style="position: relative; top: -13px;" aria-hidden="true"></span> Users
                 </NavLink>
             </div>
-        
+        }
+          @if(UserRole=="administrator"){
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="weather">
                 <span class="bi bi-gear-fill fs-4  icon-all " style="position: relative; top: -13px;" aria-hidden="true"></span> Settings
             </NavLink>
         </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-box-arrow-right fs-4 icon-all" style="position: relative; top: -13px;" aria-hidden="true"></span> Logout
-            </NavLink>
-        </div>
+          }
+       <div class="nav-item px-3">
+    <a class="nav-link"
+       href="/"
+       @onclick="Logout">
+        <span class="bi bi-box-arrow-right fs-4 icon-all"
+              style="position: relative; top: -13px;"
+              aria-hidden="true"></span>
+        Logout
+    </a>
+</div>
 
     </nav>
 </div>
 
 @code{
-    private string userRole = string.Empty;
 
-    protected override void OnInitialized()
+    public string UserName { get; set; } = "";
+    public string UserEmail { get; set; } = "";
+    public string UserRole { get; set; } = "";
+    public string  lastName { get; set; } = "";
+    public string Initials { get; set; } = "";
+    public string UserId { get; set; } = "";
+
+     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Subscribe to state changes
-        UserStateService.OnChange += StateHasChanged;
-        userRole = UserStateService.UserRole;
+        if (firstRender)
+        {
+            await LoadUserFromToken();
+        }
     }
-
-    public void Dispose()
+  private async Task LoadUserFromToken()
     {
-        UserStateService.OnChange -= StateHasChanged;
-    }
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token)) return;
 
-    private void StateHasChanged()
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(token);
+
+            UserName = jwt.Claims.FirstOrDefault(c => c.Type == "FullName")?.Value ?? "";
+            UserEmail = jwt.Claims.FirstOrDefault(c => c.Type == "Email")?.Value ?? "";
+            lastName=jwt.Claims.FirstOrDefault(c => c.Type == "lastName")?.Value ?? "";
+            UserRole = jwt.Claims.FirstOrDefault(c => c.Type == "Role")?.Value ?? "";
+            UserId = jwt.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value ?? "";
+
+         
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("JWT READ ERROR: " + ex.Message);
+        }
+    }
+     private void Logout()
     {
-        userRole = UserStateService.UserRole;
-        InvokeAsync(base.StateHasChanged);
+        // Clear auth/session/token here
     }
-
 }

@@ -13,7 +13,7 @@
         <div class="d-flex align-items-center cursor-pointer">
             <div class="profile-icon">@Initials</div>
             <div class="ms-2 d-flex flex-column">
-                <span class="profile-name">@UserName @lastName</span>
+                <span class="profile-name" style="font-weight:550; font-size:12px">@UserName @lastName</span>
             </div>
         </div>
     </Template>
@@ -90,6 +90,6 @@
     private async void Logout()
     {
         await JS.InvokeVoidAsync("localStorage.removeItem", "authToken");
-        Navigation.NavigateTo("/");
+        Navigation.NavigateTo("/login");
     }
 }
