@@ -1,4 +1,4 @@
-﻿
+
 
 
 .dashboard-container {
@@ -361,4 +361,8 @@
         width: 100%;
         justify-content: center;
     }
+}
+.task-description {
+    font-weight: 300; /* lighter */
+    color: #555; /* optional: slightly gray for more distinction */
 }

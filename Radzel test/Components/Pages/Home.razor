@@ -1,5 +1,6 @@
 @page "/dashboard"
 @inject IJSRuntime JSRuntime
+@inject HttpClient Http
 
 <PageTitle>Dashboard - Inspection Pro</PageTitle>
 
@@ -16,8 +17,8 @@
                 <i class="fas fa-exclamation-circle"></i>
             </div>
             <div class="card-content">
-                <h3>12</h3>
-                <p>OverDue</p>
+                <h3>@OverdueCount</h3>
+                <p>Overdue</p>
             </div>
         </div>
 
@@ -26,7 +27,7 @@
                 <i class="fas fa-clock"></i>
             </div>
             <div class="card-content">
-                <h3>24</h3>
+                <h3>@PendingCount</h3>
                 <p>Pending</p>
             </div>
         </div>
@@ -36,7 +37,7 @@
                 <i class="fas fa-check-circle"></i>
             </div>
             <div class="card-content">
-                <h3>43</h3>
+                <h3>@CompletedCount</h3>
                 <p>Completed</p>
             </div>
         </div>
@@ -46,49 +47,56 @@
                 <i class="fas fa-clipboard-list"></i>
             </div>
             <div class="card-content">
-                <h3>18</h3>
-                <p>Total Task</p>
+                <h3>@alTasks.Count</h3>
+                <p>Total Tasks</p>
             </div>
         </div>
     </div>
 
+    <!-- Content -->
     <div class="dashboard-content">
-        <!-- Tasks Section -->
+
+        <!-- Recent Tasks -->
         <div class="tasks-section">
             <div class="section-header">
                 <h2><i class="fas fa-list-ul"></i> Recent Tickets</h2>
                 <div class="filters">
-                    <button class="filter-btn @(ActiveFilter == "all" ? "active" : "")" @onclick='() => SetFilter("all")'>All</button>
-                    <button class="filter-btn @(ActiveFilter == "missing" ? "active" : "")" @onclick='() => SetFilter("missing")'>Missing</button>
-                    <button class="filter-btn @(ActiveFilter == "pending" ? "active" : "")" @onclick='() => SetFilter("pending")'>Pending</button>
-                    <button class="filter-btn @(ActiveFilter == "in-progress" ? "active" : "")" @onclick='() => SetFilter("in-progress")'>In Progress</button>
+                   <button class="filter-btn @(ActiveFilter == "all" ? "active" : "")" @onclick='() => SetFilter("all")'>All</button>
+<button class="filter-btn @(ActiveFilter == "missing" ? "active" : "")" @onclick='() => SetFilter("missing")'>Missing</button>
+<button class="filter-btn @(ActiveFilter == "pending" ? "active" : "")" @onclick='() => SetFilter("pending")'>Pending</button>
+<button class="filter-btn @(ActiveFilter == "in-progress" ? "active" : "")" @onclick='() => SetFilter("in-progress")'>In Progress</button>
+
                 </div>
             </div>
+
             <div class="tasks-container">
                 @foreach (var task in FilteredTasks)
                 {
                     <div class="task-item">
                         <div class="task-info">
                             <div class="task-title">
-                                <span>@task.Title</span>
-                                <span class="priority @task.Priority.ToLower()">@task.Priority.ToUpper()</span>
+                                <span>
+<strong>@task.Title</strong> - <span class="task-description">@task.description</span>
+</span>
+                                <span class="priority @task.Priority.ToLower()">@task.Priority</span>
                             </div>
                             <div class="task-meta">
-                                <span><i class="far fa-calendar"></i> Due: @task.DueDate.ToString("dd MMM yyyy")</span>
-                                <span class="inspector"><i class="fas fa-user"></i> Assigned to: @task.AssignedTo</span>
+                                <span><i class="far fa-calendar"></i> @task.DueDate.ToString("dd MMM yyyy")</span>
+                                <span><i class="fas fa-user"></i> @task.AssignedTo</span>
                             </div>
                         </div>
-                        <div class="status @task.Status.Replace(" ", "-")">@task.Status</div>
+                        <div class="status @task.Status.Replace(" ", "-").ToLower()">@task.Status</div>
                     </div>
                 }
             </div>
         </div>
 
-        <!-- Inspectors Section -->
+        <!-- Inspectors -->
         <div class="inspectors-section">
             <div class="section-header">
                 <h2><i class="fas fa-users"></i> Inspector Team</h2>
             </div>
+
             <div class="inspectors-container">
                 @foreach (var inspector in Inspectors)
                 {
@@ -97,9 +105,10 @@
                         <div class="inspector-details">
                             <div class="inspector-name">@inspector.Name</div>
                             <div class="inspector-stats">
-                                <div class="stat"><i class="fas fa-tasks"></i> @inspector.AssignedCount Assigned</div>
-                                <div class="stat">
-                                    <i class="@GetStatIcon(inspector.StatType)"></i> @inspector.StatCount @inspector.StatType
+                                <div><i class="fas fa-tasks"></i> @inspector.AssignedCount Assigned</div>
+                                <div>
+                                    <i class="@GetStatIcon(inspector.StatType)"></i>
+                                    @inspector.StatCount @inspector.StatType
                                 </div>
                             </div>
                         </div>
@@ -107,166 +116,99 @@
                 }
             </div>
         </div>
+
     </div>
 </div>
 
 @code {
     private string ActiveFilter = "all";
-    private List<TaskItem> Tasks = new();
+
+    private List<TaskItem> alTasks = new();     // ALL tasks 
+    private List<TaskItem> Tasks = new();       // TOP 5 
     private List<TaskItem> FilteredTasks = new();
     private List<Inspector> Inspectors = new();
 
-    protected override void OnInitialized()
+    private int PendingCount;
+    private int CompletedCount;
+    private int SubmittedCount;
+    private int OverdueCount;
+
+    protected override async Task OnInitializedAsync()
     {
-        LoadSampleData();
+        await LoadTasks();
+        CalculateCounts();
         FilterTasks();
     }
-
-    private void LoadSampleData()
+    private async Task LoadTasks()
     {
-        // Sample tasks
-        Tasks = new List<TaskItem>
-        {
-            new TaskItem
-            {
-                Title = "Safety Inspection - Building A",
-                Priority = "HIGH",
-                DueDate = new DateTime(2024, 2, 15),
-                AssignedTo = "John Davis",
-                Status = "missing"
-            },
-            new TaskItem
-            {
-                Title = "Electrical System Check",
-                Priority = "HIGH",
-                DueDate = new DateTime(2024, 2, 18),
-                AssignedTo = "Sarah Johnson",
-                Status = "in-progress"
-            },
-            new TaskItem
-            {
-                Title = "Fire Safety Audit",
-                Priority = "MEDIUM",
-                DueDate = new DateTime(2024, 2, 20),
-                AssignedTo = "Michael Chen",
-                Status = "pending"
-            },
-            new TaskItem
-            {
-                Title = "Structural Integrity Report",
-                Priority = "HIGH",
-                DueDate = new DateTime(2024, 2, 22),
-                AssignedTo = "Robert Wilson",
-                Status = "missing"
-            },
-            new TaskItem
-            {
-                Title = "Plumbing System Inspection",
-                Priority = "LOW",
-                DueDate = new DateTime(2024, 2, 25),
-                AssignedTo = "Lisa Martinez",
-                Status = "completed"
-            }
-        };
+        alTasks = await Http.GetFromJsonAsync<List<TaskItem>>(
+            "https://localhost:7272/api/Tasks/all") ?? new();
 
-        // Sample inspectors
-        Inspectors = new List<Inspector>
-        {
-            new Inspector
-            {
-                Avatar = "JD",
-                Name = "John Davis",
-                AssignedCount = 8,
-                StatType = "Missing",
-                StatCount = 2
-            },
-            new Inspector
-            {
-                Avatar = "SJ",
-                Name = "Sarah Johnson",
-                AssignedCount = 6,
-                StatType = "In Progress",
-                StatCount = 4
-            },
-            new Inspector
-            {
-                Avatar = "MC",
-                Name = "Michael Chen",
-                AssignedCount = 7,
-                StatType = "Pending",
-                StatCount = 3
-            },
-            new Inspector
-            {
-                Avatar = "RW",
-                Name = "Robert Wilson",
-                AssignedCount = 5,
-                StatType = "Missing",
-                StatCount = 1
-            },
-            new Inspector
-            {
-                Avatar = "LM",
-                Name = "Lisa Martinez",
-                AssignedCount = 4,
-                StatType = "Completed",
-                StatCount = 4
-            }
-        };
+        Tasks = alTasks
+            .OrderByDescending(t => t.CreatedAt)
+            .Take(5)
+            .ToList();
+    }
+
+    
+    private void CalculateCounts()
+    {
+        PendingCount = alTasks.Count(t =>
+            t.Status.Equals("pending", StringComparison.OrdinalIgnoreCase));
+
+        CompletedCount = alTasks.Count(t =>
+            t.Status.Equals("approved", StringComparison.OrdinalIgnoreCase) ||
+            t.Status.Equals("completed", StringComparison.OrdinalIgnoreCase));
+
+        SubmittedCount = alTasks.Count(t =>
+            t.Status.Equals("submitted", StringComparison.OrdinalIgnoreCase));
+
+        OverdueCount = alTasks.Count(t =>
+            t.DueDate < DateTime.UtcNow &&
+            !t.Status.Equals("completed", StringComparison.OrdinalIgnoreCase));
     }
 
     private void SetFilter(string filter)
     {
         ActiveFilter = filter;
         FilterTasks();
-
-        if (filter != "all")
-        {
-            JSRuntime.InvokeVoidAsync("alert", $"Filtering by: {filter.Replace("-", " ")}");
-        }
     }
 
     private void FilterTasks()
     {
-        if (ActiveFilter == "all")
-        {
-            FilteredTasks = Tasks;
-        }
-        else
-        {
-            FilteredTasks = Tasks.Where(t => t.Status == ActiveFilter).ToList();
-        }
-        StateHasChanged();
+        FilteredTasks = ActiveFilter == "all"
+            ? Tasks.ToList()
+            : Tasks.Where(t =>
+                t.Status.Equals(ActiveFilter, StringComparison.OrdinalIgnoreCase))
+                .ToList();
     }
 
-    private string GetStatIcon(string statType)
+    private string GetStatIcon(string statType) => statType.ToLower() switch
     {
-        return statType.ToLower() switch
-        {
-            "missing" => "fas fa-exclamation-circle",
-            "in progress" => "fas fa-sync-alt",
-            "pending" => "fas fa-clock",
-            "completed" => "fas fa-check-circle",
-            _ => "fas fa-tasks"
-        };
-    }
+        "missing" => "fas fa-exclamation-circle",
+        "in progress" => "fas fa-sync-alt",
+        "pending" => "fas fa-clock",
+        "completed" => "fas fa-check-circle",
+        _ => "fas fa-tasks"
+    };
 
-    // Model Classes
     public class TaskItem
     {
-        public string Title { get; set; } = string.Empty;
-        public string Priority { get; set; } = string.Empty;
+        public string Title { get; set; } = "";
+        public string Priority { get; set; } = "";
         public DateTime DueDate { get; set; }
-        public string AssignedTo { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
+        public string AssignedTo { get; set; } = "";
+        public string Status { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+        public string description  {get; set; } = "";
     }
 
     public class Inspector
     {
-        public string Avatar { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
+        public string Avatar { get; set; } = "";
+        public string Name { get; set; } = "";
         public int AssignedCount { get; set; }
-        public string StatType { get; set; } = string.Empty;
+        public string StatType { get; set; } = "";
         public int StatCount { get; set; }
     }
 }
