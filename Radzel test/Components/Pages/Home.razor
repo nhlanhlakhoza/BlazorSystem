@@ -137,6 +137,7 @@
     {
         await LoadTasks();
         CalculateCounts();
+         await LoadInspectors();
         FilterTasks();
     }
     private async Task LoadTasks()
@@ -173,7 +174,17 @@
         ActiveFilter = filter;
         FilterTasks();
     }
-
+      private async Task LoadInspectors()
+    {
+        try
+        {
+            Inspectors = await Http.GetFromJsonAsync<List<Inspector>>("https://localhost:7272/api/users/inspectors") ?? new();
+        }
+        catch
+        {
+            Inspectors = new();
+        }
+    }
     private void FilterTasks()
     {
         FilteredTasks = ActiveFilter == "all"
