@@ -1,7 +1,7 @@
 @page "/dashboard"
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
-
+@using Radzen
 <PageTitle>Dashboard - Inspection Pro</PageTitle>
 
 <div class="dashboard-container">
@@ -98,12 +98,12 @@
             </div>
 
             <div class="inspectors-container">
-                @foreach (var inspector in Inspectors)
+                @foreach (var inspector in PagedInspectors)
                 {
                     <div class="inspector-card">
                         <div class="inspector-avatar">@inspector.Avatar</div>
                         <div class="inspector-details">
-                            <div class="inspector-name">@inspector.Name</div>
+                            <div class="inspector-name">@inspector.fullName</div>
                             <div class="inspector-stats">
                                 <div><i class="fas fa-tasks"></i> @inspector.AssignedCount Assigned</div>
                                 <div>
@@ -114,9 +114,21 @@
                         </div>
                     </div>
                 }
-            </div>
-        </div>
+               
+               
 
+               
+            </div>
+            <!-- Paginator -->
+            <RadzenPager Count="@TotalInspectors"
+                         PageSize="@pageSize"
+                         @bind-PageIndex="@pageIndex"
+                         PageNumbersCount="6"
+                         Style="margin-top:20px; display:flex; justify-content:center;" />
+
+
+        </div>
+        
     </div>
 </div>
 
@@ -132,6 +144,17 @@
     private int CompletedCount;
     private int SubmittedCount;
     private int OverdueCount;
+
+
+    private int pageSize = 4;
+    private int pageIndex = 0;
+
+    private int TotalInspectors => Inspectors.Count;
+  
+    private IEnumerable<Inspector> PagedInspectors =>
+     Inspectors
+         .Skip(pageIndex * pageSize)
+         .Take(pageSize);
 
     protected override async Task OnInitializedAsync()
     {
@@ -179,6 +202,7 @@
         try
         {
             Inspectors = await Http.GetFromJsonAsync<List<Inspector>>("https://localhost:7272/api/users/inspectors") ?? new();
+            pageIndex = 0; 
         }
         catch
         {
@@ -217,7 +241,7 @@
     public class Inspector
     {
         public string Avatar { get; set; } = "";
-        public string Name { get; set; } = "";
+        public string fullName { get; set; } = "";
         public int AssignedCount { get; set; }
         public string StatType { get; set; } = "";
         public int StatCount { get; set; }
