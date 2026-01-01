@@ -42,28 +42,29 @@
                     <th>Task Name</th>
                     <th> Description</th>
                     <th>Status</th>
-                    <th>Actions</th>
+                  
                 </tr>
             </thead>
-            <tbody>
-                @foreach (var task in PagedTasks)
-                {
-                    <tr>
-                        <td>@task.Title</td>
-                        <td>@task.Description</td>
-                        <td>
-                            <span class="status-badge status-@task.Status">@task.Status</span>
-                        </td>
-                        <td>
-                           
+           <tbody>
+    @foreach (var task in PagedTasks)
+    {
+        <tr class="clickable-row"
+            @onclick="() => OpenTaskModalFunc(task)">
 
-                             <button class="icon-btn view-btn" @onclick="() => OpenTaskModalFunc(task)">
-                                <i class="fas fa-eye"></i> Complete Task
-                            </button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
+            <td>@task.Title</td>
+            <td>@task.Description</td>
+
+            <td>
+                <span class="status-badge status-@task.Status">
+                    @task.Status.ToUpper()
+                </span>
+            </td>
+
+        
+        </tr>
+    }
+</tbody>
+
         </table>
 
         <div class="pager-container">

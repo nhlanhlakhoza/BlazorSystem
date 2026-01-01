@@ -221,13 +221,31 @@
                             <InputTextArea @bind-Value="ApprovalModels.Comments" class="form-control" required />
                         </div>
 
-                        @if (ApprovalModels.IsApproved)
-                        {
-                            <div class="form-group">
-                                <label>External Recipients</label>
-                                <InputText @bind-Value="ApprovalModels.ExternalRecipients" class="form-control" placeholder="Enter email(s)" />
-                            </div>
-                        }
+@if (ApprovalModels.IsApproved)
+{
+    <div class="form-group">
+        <label>Department</label>
+
+        <InputSelect class="form-control"
+                     @bind-Value="SelectedDepartment">
+            <option value="">-- Select Department --</option>
+
+            @foreach (var dept in DepartmentEmails.Keys)
+            {
+                <option value="@dept">@dept</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="form-group mt-2">
+        
+        <InputText type="hidden"
+           @bind-Value="ApprovalModels.ExternalRecipients" />
+
+    </div>
+}
+
+
 
                         <div class="form-actions mt-2">
                             <button type="submit" class="btn btn-primary me-2">Submit</button>
@@ -887,6 +905,44 @@
         }
     }
 
+     private string _selectedDepartment;
+
+    private string SelectedDepartment
+    {
+        get => _selectedDepartment;
+        set
+        {
+            _selectedDepartment = value;
+
+            if (!string.IsNullOrWhiteSpace(value)
+                && DepartmentEmails.ContainsKey(value))
+            {
+                ApprovalModels.ExternalRecipients = DepartmentEmails[value];
+            }
+            else
+            {
+                ApprovalModels.ExternalRecipients = string.Empty;
+            }
+        }
+    }
+
+    private Dictionary<string, string> DepartmentEmails = new()
+    {
+        { "Administration", "admin@company.com" },
+        { "Engineering", "engineering@company.com" },
+        { "Finance and Accounting", "finance@company.com" },
+        { "Human Resources (HR)", "hr@company.com" },
+        { "Information Technology (IT)", "nhlanhlakhoza05@gmail.com" },
+        { "Legal", "legal@company.com" },
+        { "Marketing", "marketing@company.com" },
+        { "Operations", "operations@company.com" },
+        { "Plant Operations", "plant@company.com" },
+        { "Procurement / Purchasing", "procurement@company.com" },
+        { "Quality Assurance", "qa@company.com" },
+        { "Research and Development (R&D)", "rnd@company.com" },
+        { "Sales", "sales@company.com" },
+        { "Customer Service / Support", "support@company.com" }
+    };
 
     public class ApprovalModel
     {
