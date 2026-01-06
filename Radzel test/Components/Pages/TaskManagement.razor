@@ -108,7 +108,7 @@
                                 <button class="icon-btn edit-btn" @onclick="() => EditTask(task.Id)">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                <button class="icon-btn delete-btn" @onclick="() => DeleteTask(task.Id)">
+                                <button class="icon-btn delete-btn" @onclick="() => TaskToDeleteId = task.Id">
                                     <i class="fas fa-trash"></i>
                                 </button>
                                 @if (task.Status == "submitted")
@@ -131,6 +131,29 @@
                      PageChanged="@PageChanged" />
     </div>
 </div>
+@if (TaskToDeleteId.HasValue)
+{
+    <div class="confirm-overlay">
+        <div class="confirm-box">
+            <h4>Confirm Delete</h4>
+            <p>Are you sure you want to delete this task?</p>
+
+            <div class="confirm-actions">
+                <button class="btn-confirm"
+                        @onclick="ConfirmDelete">
+                    Yes
+                </button>
+
+                <button class="btn-cancel"
+                        @onclick="() => TaskToDeleteId = null">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+
 @if (ShowViewModal)
 {
     <div class="modal show">
@@ -352,6 +375,8 @@
     </div>
 }
 
+
+
 <!-- Loading Indicator -->
 @if (IsLoading)
 {
@@ -386,6 +411,7 @@
     private string SuccessMessage = "";
     private ApprovalModel ApprovalModels = new();
     private bool ShowApprovalForm = false;
+    private string _selectedDepartment;
 
     private int pageSize = 4;
     private int pageIndex = 0;
@@ -395,7 +421,7 @@
     private FileItem? SelectedImage;
     private IEnumerable<TaskItem> PagedTasks =>
         FilteredTasks.Skip(pageIndex * pageSize).Take(pageSize);
-
+ private int? TaskToDeleteId;
     private int PendingCount;
     private int CompletedCount;
     private int SubmittedCount;
@@ -486,7 +512,7 @@
                 {
                     Id = i.Id,
                     FullName = $"{i.FullName} {i.LastName}",
-                    Avatar = $"{(string.IsNullOrEmpty(i.FullName) ? "" : i.FullName[0].ToString())}" +
+                    Avatar = $"{(string.IsNullOrEmpty(i.FullName) ? "" : i.FullName[0].ToString())}".ToUpper() +
                              $"{(string.IsNullOrEmpty(i.LastName) ? "" : i.LastName[0].ToString())}".ToUpper()
                 }).ToList();
             }
@@ -683,20 +709,35 @@
         SelectedImage = null;
     }
 
+    private async Task ConfirmDelete()
+{
+    if (TaskToDeleteId == null)
+        return;
+
+    await DeleteTask(TaskToDeleteId.Value);
+    TaskToDeleteId = null;
+}
 
 
 
 
-    private async Task DeleteTask(int taskId)
+
+  private async Task DeleteTask(int taskId)
+{
+    var response = await Http.DeleteAsync(
+        $"https://localhost:7272/api/Tasks/delete/{taskId}"
+    );
+
+    if (response.IsSuccessStatusCode)
     {
-        var result = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this task?");
-        if (result)
-        {
-            Tasks.RemoveAll(t => t.Id == taskId);
-            FilterTasks();
-            //await JSRuntime.InvokeVoidAsync("alert", "Task deleted successfully!");
-        }
+        
+        Tasks.RemoveAll(t => t.Id == taskId);
+
+        FilterTasks();
+      
+        SuccessMessage = "Task deleted successfully.";
     }
+}
 
     private void UpdateTaskStatus(int taskId, string? newStatus)
     {
@@ -905,8 +946,7 @@
         }
     }
 
-     private string _selectedDepartment;
-
+    
     private string SelectedDepartment
     {
         get => _selectedDepartment;
