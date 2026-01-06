@@ -1,4 +1,4 @@
-﻿namespace backendMpact.Services
+namespace backendMpact.Services
 {
     public interface IEmailService
     {

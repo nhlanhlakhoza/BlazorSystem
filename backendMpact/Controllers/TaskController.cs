@@ -144,17 +144,37 @@ public class TasksController : ControllerBase
             // Send email to external recipients
             if (!string.IsNullOrWhiteSpace(dto.ExternalRecipients))
             {
-                var recipients = dto.ExternalRecipients.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                var recipients = dto.ExternalRecipients
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
                 foreach (var email in recipients)
                 {
                     await _emailService.SendEmailAsync(
                         email,
-                        $"Inspection Task Approved: {task.Title}",
-                        $"Inspector completed inspection for task '{task.Title}'.\n\nNotes: {task.InspectorNotes}",
+                        $"Inspection Task Approved – {task.Title}",
+                        $@"
+Dear Recipient,
+
+We are pleased to inform you that the inspection task titled ""{task.Title}"" has been successfully completed and approved.
+
+Inspector’s Notes:
+{task.InspectorNotes}
+
+Manager’s Comments:
+{task.ManagerComments}
+
+Please find any relevant attachments for your reference.
+
+If you have any questions or require further information, please do not hesitate to contact us.
+
+Kind regards,
+Inspection  Team
+",
                         attachments
                     );
                 }
             }
+
         }
         else
         {
