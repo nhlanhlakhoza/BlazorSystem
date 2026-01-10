@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject IJSRuntime JSRuntime
 @inject HttpClient Http
+@inject IJSRuntime JS
 @using Radzel_test.Components.Services
 @using Radzen
 @inject UserStateService UserStateService
@@ -41,6 +42,8 @@
                 <tr>
                     <th>Task Name</th>
                     <th> Description</th>
+                    <th>Due Date </th>
+                    <th> Priority</th>
                     <th>Status</th>
                   
                 </tr>
@@ -54,6 +57,12 @@
             <td>@task.Title</td>
             <td>@task.Description</td>
 
+             <td>@FormatDate(task.DueDate)</td>
+             <td>
+              <span class="priority-badge priority-@task.Priority.ToLower()">
+               @task.Priority.ToUpper()
+              </span>
+             </td>
             <td>
                 <span class="status-badge status-@task.Status">
                     @task.Status.ToUpper()
@@ -422,6 +431,10 @@
         }
     }
 
+    private string FormatDate(DateTime date)
+    {
+        return date.ToString("MMM dd, yyyy");
+    }
 
 
 
@@ -437,8 +450,9 @@
         public string PdfName { get; set; } = string.Empty;
         public byte[]? PdfBytes { get; set; }
         public string Description { get; set; }= string.Empty;
-
+        public string Priority { get; set; } = string.Empty;
         public List<TaskImage> Pictures { get; set; } = new();
+        public DateTime DueDate { get; set; }
     }
 
     public class TaskImage

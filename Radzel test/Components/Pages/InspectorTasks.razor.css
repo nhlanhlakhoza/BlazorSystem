@@ -606,3 +606,25 @@ input:checked + .slider {
     .pdf-file i {
         font-size: 1.5rem;
     }
+
+.priority-high {
+    background: #ffcdd2;
+    color: #c62828;
+}
+
+.priority-medium {
+    background: #fff9c4;
+    color: #f57f17;
+}
+
+.priority-low {
+    background: #c8e6c9;
+    color: #2e7d32;
+}
+
+.priority-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
