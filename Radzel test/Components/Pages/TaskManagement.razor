@@ -1,8 +1,10 @@
 @page "/tasks"
 @using Microsoft.AspNetCore.Components.Forms
 @inject IJSRuntime JSRuntime
+@inject IJSRuntime JS
 @using BlazorBootstrap
 @using Radzel_test.Components.Services
+@using System.IdentityModel.Tokens.Jwt
 @using static System.Net.WebRequestMethods
 @inject HttpClient Http
 @rendermode InteractiveServer
@@ -72,7 +74,9 @@
                     <th>Due Date</th>
                     <th>Priority</th>
                     <th>Status</th>
+                    @if  (UserRole == "manager"){
                     <th>Actions</th>
+                    }
                 </tr>
             </thead>
             <tbody>
@@ -103,22 +107,25 @@
                                 @task.Status.ToUpper()
                             </span>
                         </td>
-                        <td>
-                            <div class="action-cell">
-                                <button class="icon-btn edit-btn" @onclick="() => EditTask(task.Id)">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="icon-btn delete-btn" @onclick="() => TaskToDeleteId = task.Id">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                @if (task.Status == "submitted")
-                                {
-                                    <button class="icon-btn view-btn" @onclick="() => ViewTask(task.Id)">
-                                        <i class="fas fa-eye"></i>
+                        @if (UserRole == "manager")
+                        {
+                            <td>
+                                <div class="action-cell">
+                                    <button class="icon-btn edit-btn" @onclick="() => EditTask(task.Id)">
+                                        <i class="fas fa-edit"></i>
                                     </button>
-                                }
-                            </div>
-                        </td>
+                                    <button class="icon-btn delete-btn" @onclick="() => TaskToDeleteId = task.Id">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    @if (task.Status == "submitted")
+                                    {
+                                        <button class="icon-btn view-btn" @onclick="() => ViewTask(task.Id)">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        }
                     </tr>
                 }
             </tbody>
@@ -416,12 +423,12 @@
     private int pageSize = 4;
     private int pageIndex = 0;
     private int count => FilteredTasks.Count;
-
+    public string UserRole { get; set; } = "";
     private bool ShowImagePreview = false;
     private FileItem? SelectedImage;
     private IEnumerable<TaskItem> PagedTasks =>
         FilteredTasks.Skip(pageIndex * pageSize).Take(pageSize);
- private int? TaskToDeleteId;
+    private int? TaskToDeleteId;
     private int PendingCount;
     private int CompletedCount;
     private int SubmittedCount;
@@ -710,34 +717,34 @@
     }
 
     private async Task ConfirmDelete()
-{
-    if (TaskToDeleteId == null)
-        return;
-
-    await DeleteTask(TaskToDeleteId.Value);
-    TaskToDeleteId = null;
-}
-
-
-
-
-
-  private async Task DeleteTask(int taskId)
-{
-    var response = await Http.DeleteAsync(
-        $"https://localhost:7272/api/Tasks/delete/{taskId}"
-    );
-
-    if (response.IsSuccessStatusCode)
     {
-        
-        Tasks.RemoveAll(t => t.Id == taskId);
+        if (TaskToDeleteId == null)
+            return;
 
-        FilterTasks();
-      
-        SuccessMessage = "Task deleted successfully.";
+        await DeleteTask(TaskToDeleteId.Value);
+        TaskToDeleteId = null;
     }
-}
+
+
+
+
+
+    private async Task DeleteTask(int taskId)
+    {
+        var response = await Http.DeleteAsync(
+            $"https://localhost:7272/api/Tasks/delete/{taskId}"
+        );
+
+        if (response.IsSuccessStatusCode)
+        {
+
+            Tasks.RemoveAll(t => t.Id == taskId);
+
+            FilterTasks();
+
+            SuccessMessage = "Task deleted successfully.";
+        }
+    }
 
     private void UpdateTaskStatus(int taskId, string? newStatus)
     {
@@ -770,7 +777,8 @@
         }
 
         // Simulate data refresh by re-filtering
-        FilterTasks();
+        LoadSampleData();
+        // FilterTasks();
 
         IsLoading = false;
 
@@ -808,8 +816,8 @@
         ViewTaskImages = new List<FileItem>();
         ViewTaskFiles = new List<FileItem>();
 
-        string imagesPath = @"C:\Users\nhlan\Desktop\MpactStorage\TaskImages";
-        string pdfsPath   = @"C:\Users\nhlan\Desktop\MpactStorage\TaskPDFs";
+        string imagesPath = @"C:\Users\khozakn\Desktop\MpactStorage\TaskImages";
+        string pdfsPath   = @"C:\Users\khozakn\Desktop\MpactStorage\TaskPDFs";
 
 
         if (Directory.Exists(imagesPath))
@@ -945,8 +953,34 @@
             StateHasChanged();
         }
     }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadUserFromToken();
+        }
+    }
+    private async Task LoadUserFromToken()
+    {
+        try
+        {
+            var token = await JS.InvokeAsync<string>("localStorage.getItem", "authToken");
+            if (string.IsNullOrEmpty(token)) return;
 
-    
+            var handler = new JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(token);
+
+       
+            UserRole = jwt.Claims.FirstOrDefault(c => c.Type == "Role")?.Value ?? "";
+           
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("JWT READ ERROR: " + ex.Message);
+        }
+    }
     private string SelectedDepartment
     {
         get => _selectedDepartment;

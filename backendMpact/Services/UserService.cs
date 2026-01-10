@@ -89,7 +89,6 @@ namespace backendMpact.Services
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Claims
             var claims = new[]
             {
             new Claim("Email", user.Email.ToString()),

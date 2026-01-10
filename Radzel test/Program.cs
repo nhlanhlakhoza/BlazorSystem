@@ -53,7 +53,7 @@ var app = builder.Build();
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(
-        @"C:\Users\nhlan\Desktop\MpactStorage\TaskImages"),
+        @"C:\Users\khozakn\Desktop\MpactStorage\TaskImages"),
     RequestPath = "/TaskImages"
 });
 
@@ -61,7 +61,7 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(
-        @"C:\Users\nhlan\Desktop\MpactStorage\TaskPDFs"),
+        @"C:\Users\khozakn\Desktop\MpactStorage\TaskPDFs"),
     RequestPath = "/TaskPDFs"
 });
 
