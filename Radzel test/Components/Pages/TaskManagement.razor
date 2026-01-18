@@ -365,7 +365,7 @@
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Task</button>
+                    <button type="submit" class="btn btn-primary" disabled="@(EditingTask && CurrentTask.Status != "pending")">Save Task</button>
                 </div>
             </EditForm>
             <br />
@@ -637,27 +637,59 @@
             return;
         }
 
+        // ?? Frontend safety check (backend already enforces this)
+        if (EditingTask && CurrentTask.Status?.ToLower() != "pending")
+        {
+            ErrorMessage = "Only pending tasks can be edited.";
+            return;
+        }
+
         IsLoading = true;
-        LoadingMessage = "Saving task...";
+        LoadingMessage = EditingTask ? "Updating task..." : "Saving task...";
         StateHasChanged();
 
         try
         {
-            await Task.Delay(500); 
+            await Task.Delay(500);
 
+            HttpResponseMessage response;
 
-            var dto = new CreateTaskDto
+            if (EditingTask)
             {
-                Title = CurrentTask.Title,
-                Description = CurrentTask.Description,
-                AgentId = CurrentTask.AgentId.ToString(),   
-                AssignedBy = userId.ToString(),
-                Priority = CurrentTask.Priority,
-                DueDate = CurrentTask.DueDate
-            };
+                //  EDIT TASK
+                var dto = new CreateTaskDto
+                {
+                    Title = CurrentTask.Title,
+                    Description = CurrentTask.Description,
+                    AgentId = CurrentTask.AgentId.ToString(),
+                    AssignedBy = userId.ToString(),
+                    Priority = CurrentTask.Priority,
+                    DueDate = CurrentTask.DueDate
+                };
 
+                response = await Http.PutAsJsonAsync(
+                    $"https://localhost:7272/api/Tasks/edit/{CurrentTask.Id}",
+                    dto
+                );
+            }
+            else
+            {
+                //  CREATE TASK
+                var dto = new CreateTaskDto
+                {
+                    Title = CurrentTask.Title,
+                    Description = CurrentTask.Description,
+                    AgentId = CurrentTask.AgentId.ToString(),
+                    AssignedBy = userId.ToString(),
+                    Priority = CurrentTask.Priority,
+                    DueDate = CurrentTask.DueDate
+                };
 
-            var response = await Http.PostAsJsonAsync("https://localhost:7272/api/Tasks/add", dto);
+                response = await Http.PostAsJsonAsync(
+                    "https://localhost:7272/api/Tasks/add",
+                    dto
+                );
+            }
 
             if (response.IsSuccessStatusCode)
             {
@@ -665,10 +697,9 @@
 
                 if (savedTask != null)
                 {
-
                     if (EditingTask)
                     {
-                        var index = Tasks.FindIndex(t => t.Id == CurrentTask.Id);
+                        var index = Tasks.FindIndex(t => t.Id == savedTask.Id);
                         if (index >= 0)
                             Tasks[index] = savedTask;
                     }
@@ -678,7 +709,9 @@
                     }
 
                     FilterTasks();
-
+                    SuccessMessage = EditingTask
+                        ? "Task updated successfully!"
+                        : "Task created successfully!";
                 }
             }
             else
@@ -694,14 +727,13 @@
         finally
         {
             IsLoading = false;
-            SuccessMessage = "Task Created successfully!";
-
             StateHasChanged();
-            await Task.Delay(3000);
 
+            await Task.Delay(2000);
             CloseModal();
         }
     }
+
 
 
     private void OpenImagePreview(FileItem image)

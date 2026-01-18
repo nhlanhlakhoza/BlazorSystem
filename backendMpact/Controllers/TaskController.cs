@@ -75,6 +75,62 @@ public class TasksController : ControllerBase
 
         return Ok(task);
     }
+ 
+    [HttpPut("edit/{task_id}")]
+    public async Task<IActionResult> EditTask(int task_id, [FromBody] CreateTaskDto dto)
+    {
+        // Find existing task
+        var task = await _context.Tasks.FirstOrDefaultAsync(t => t.Id == task_id);
+
+        if (task == null)
+            return NotFound("Task not found.");
+
+        // Allow edit only if status is pending
+        if (task.Status.ToLower() != "pending")
+            return BadRequest("Only tasks with status 'pending' can be edited.");
+
+        // Convert AgentId
+        if (!int.TryParse(dto.AgentId, out int agentId))
+            return BadRequest("Invalid AgentId format.");
+
+        // Convert AssignedBy
+        if (!int.TryParse(dto.AssignedBy, out int assignedById))
+            return BadRequest("Invalid AssignedBy format.");
+
+        // Validate agent (Inspector)
+        var inspector = await _context.Users
+            .FirstOrDefaultAsync(u =>
+                u.Id == agentId &&
+                u.Role == "Inspector");
+
+        if (inspector == null)
+            return BadRequest("Invalid AgentId. Selected user is not an Inspector.");
+
+        // Validate manager (AssignedBy)
+        var manager = await _context.Users
+            .FirstOrDefaultAsync(u =>
+                u.Id == assignedById &&
+                u.Role == "Manager");
+
+        if (manager == null)
+            return BadRequest("Invalid AssignedBy. Selected user is not a Manager.");
+
+        // Update fields
+        task.Title = dto.Title;
+        task.Description = dto.Description;
+        task.AgentId = dto.AgentId;
+        task.AssignedBy = dto.AssignedBy;
+        task.Priority = dto.Priority;
+        task.DueDate = dto.DueDate;
+
+        // Status is NOT changed here
+        // task.Status stays "pending"
+
+        await _context.SaveChangesAsync();
+
+        return Ok(task);
+    }
+
 
     [HttpPut("inspector-update/{id}")]
     public async Task<IActionResult> InspectorUpdateTask(
