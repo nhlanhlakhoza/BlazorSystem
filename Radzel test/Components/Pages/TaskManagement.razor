@@ -592,6 +592,7 @@
 
     private void ShowAddTaskModal()
     {
+      
         CurrentTask = new TaskItem
         {
             DueDate = DateTime.Today.AddDays(1),
@@ -629,6 +630,7 @@
     {
         ShowModal = false;
         CurrentTask = new TaskItem();
+        SuccessMessage = "";
         StateHasChanged();
     }
 
@@ -716,7 +718,9 @@
                     SuccessMessage = EditingTask
                         ? "Task updated successfully!"
                         : "Task created successfully!";
+                 
                 }
+               
             }
             else
             {
@@ -735,6 +739,7 @@
 
             await Task.Delay(2000);
             CloseModal();
+            StateHasChanged();
         }
     }
 
