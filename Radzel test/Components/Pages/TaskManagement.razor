@@ -18,11 +18,15 @@
     </div>
 
     <!-- Quick Actions -->
+
     <div class="quick-actions">
-        <button class="action-btn add" @onclick="ShowAddTaskModal">
-            <i class="fas fa-plus-circle"></i>
-            Add New Task
-        </button>
+        @if (UserRole == "manager")
+        {
+            <button class="action-btn add" @onclick="ShowAddTaskModal">
+                <i class="fas fa-plus-circle"></i>
+                Add New Task
+            </button>
+        }
         <button class="action-btn refresh" id="refreshBtn" @onclick="RefreshData">
             <i class="fas fa-sync-alt"></i>
             Refresh Data
