@@ -101,7 +101,18 @@
                 @foreach (var inspector in PagedInspectors)
                 {
                     <div class="inspector-card">
-                        <div class="inspector-avatar">@inspector.Avatar</div>
+                        <div class="inspector-avatar">
+                            @{
+                                var firstInitial = !string.IsNullOrWhiteSpace(inspector.fullName)
+                                ? inspector.fullName.Trim()[0].ToString().ToUpper()
+                                : "";
+
+                                var lastInitial = !string.IsNullOrWhiteSpace(inspector.lastName)
+                                ? inspector.lastName.Trim()[0].ToString().ToUpper()
+                                : "";
+                            }
+                            @firstInitial@lastInitial
+                        </div>
                         <div class="inspector-details">
                             <div class="inspector-name">@inspector.fullName</div>
                             <div class="inspector-stats">
@@ -240,6 +251,7 @@
 
     public class Inspector
     {
+        public string lastName { get; set; } = "";
         public string Avatar { get; set; } = "";
         public string fullName { get; set; } = "";
         public int AssignedCount { get; set; }
